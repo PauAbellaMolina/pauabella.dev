@@ -1,3 +1,5 @@
+import type { Experiment } from './types';
+
 /**
  * Experiments Registry
  *
@@ -10,7 +12,7 @@
  * - thumbnail: optional thumbnail image path
  */
 
-const experiments = [
+const experiments: Experiment[] = [
   {
     id: 'hello-world',
     title: 'Hello World',
