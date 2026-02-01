@@ -11,7 +11,7 @@ export interface BlogPost {
 const blogPosts: BlogPost[] = [
   {
     id: 'how-i-moved-to-copenhagen',
-    title: 'How I moved to Copenhagen as a Software Engineer',
+    title: 'moving to Copenhagen',
     date: 'January 2025',
     excerpt: 'Hi, my name is Pau, I am now 24 years old and have been living in Copenhagen for a year, this is the story of how I got here.',
     content: (
