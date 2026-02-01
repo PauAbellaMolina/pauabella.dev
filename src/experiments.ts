@@ -21,6 +21,14 @@ const experiments: Experiment[] = [
     displayMode: 'modal',
     thumbnail: null,
   },
+  {
+    id: 'click-game',
+    title: 'Click the Target',
+    description: 'A fast-paced clicking game - hit as many targets as you can!',
+    path: '/experiments/click-game/index.html',
+    displayMode: 'fullscreen',
+    thumbnail: null,
+  },
 ];
 
 export default experiments;
