@@ -1,0 +1,77 @@
+.experiment-fullscreen {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff0db;
+}
+
+.experiment-fullscreen-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 240, 219, 0.95);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.experiment-fullscreen-header h1 {
+  font-family: 'TASA Orbiter', sans-serif;
+  font-size: 1.25rem;
+  margin: 0;
+  color: #0f4c81;
+}
+
+.experiment-back-btn {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  background: none;
+  border: none;
+  color: #0f4c81;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  transition: transform 0.1s ease;
+}
+
+.experiment-back-btn:hover {
+  transform: skewX(-5deg);
+}
+
+.experiment-fullscreen-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+}
+
+.experiment-fullscreen-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 1rem;
+  background: #fff0db;
+}
+
+.experiment-fullscreen-error h1 {
+  font-family: 'TASA Orbiter', sans-serif;
+  color: #0f4c81;
+}
+
+.experiment-fullscreen-error button {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  background: #0f4c81;
+  color: #fff0db;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: transform 0.1s ease;
+}
+
+.experiment-fullscreen-error button:hover {
+  transform: skewX(-5deg);
+}

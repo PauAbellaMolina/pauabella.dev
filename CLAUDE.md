@@ -20,13 +20,23 @@ This is **pauabella.dev**, a personal portfolio website for Pau Abella built wit
 
 ```
 pauabella.dev/
-├── public/                  # Static assets served directly
+├── public/
 │   ├── _redirects          # Netlify SPA routing config
 │   ├── index.html          # HTML template
-│   └── favicon.*           # Site icons
+│   ├── favicon.*           # Site icons
+│   └── experiments/        # Simple standalone experiments (HTML/CSS/JS)
+│       └── [experiment]/
+│           ├── index.html
+│           ├── style.css
+│           └── script.js
+├── experiments/            # Complex experiments with own build (future)
+│   └── [experiment]/
+│       ├── package.json
+│       └── src/
 ├── src/
 │   ├── App.js              # Main app with route definitions
 │   ├── App.css             # Primary stylesheet (all page styles)
+│   ├── experiments.js      # Experiments registry/config
 │   ├── index.js            # React entry point with BrowserRouter
 │   ├── index.css           # Base/reset styles
 │   ├── assets/
@@ -35,12 +45,18 @@ pauabella.dev/
 │   │   ├── images/         # Image assets (webp format)
 │   │   └── svg/            # SVG assets
 │   ├── components/
-│   │   └── TransitionWrapper.js  # Page transition wrapper
+│   │   ├── TransitionWrapper.js  # Page transition wrapper
+│   │   ├── ExperimentModal.js    # Modal for inline experiments
+│   │   └── ExperimentModal.css
 │   └── pages/
 │       ├── Home.js         # Main landing page
 │       ├── Norda.js        # Norda Tickets project page
 │       ├── Bikepack.js     # Bikepacking photo gallery
-│       └── Blogposts.js    # Blog posts page
+│       ├── Blogposts.js    # Blog posts page
+│       ├── Vibecoding.js   # Vibecoding experiments listing
+│       ├── Vibecoding.css
+│       ├── ExperimentFullscreen.js  # Fullscreen experiment wrapper
+│       └── ExperimentFullscreen.css
 └── package.json
 ```
 
@@ -63,6 +79,7 @@ Each page component follows a consistent pattern:
   - Norda: `#7958CE` (purple)
   - Bikepack: `#0f4c81` (blue)
   - Blogposts: `#0f4c81` (blue)
+  - Vibecoding: `#0f4c81` (blue)
 - **Typography:**
   - Headings: 'TASA Orbiter' font
   - Body text: 'Valverde' font
@@ -77,6 +94,8 @@ Routes are defined in `App.js`:
 - `/norda` → Norda project page
 - `/bikepack` → Bikepacking gallery
 - `/blogposts` → Blog posts page
+- `/vibecoding` → Vibecoding experiments listing
+- `/experiment/:experimentId` → Fullscreen experiment view
 
 The URL pathname (without `/`) is added as a class to `.page-wrapper` for page-specific styling.
 
@@ -100,6 +119,50 @@ npm test        # Run tests
 2. Add a route in `src/App.js`
 3. Add page-specific background color in `App.css` (e.g., `.newpage .page-background`)
 4. Add selection colors if needed (e.g., `.newpage .App ::selection`)
+
+## Vibecoding Experiments
+
+The `/vibecoding` section hosts containerized experiments (mini-apps, games, demos) that are isolated from the main portfolio code.
+
+### Adding a New Experiment
+
+1. **Create the experiment folder** in `public/experiments/[experiment-name]/`
+2. **Add your files:**
+   ```
+   public/experiments/my-game/
+   ├── index.html    # Entry point (required)
+   ├── style.css     # Styles
+   └── script.js     # Logic
+   ```
+3. **Register in `src/experiments.js`:**
+   ```javascript
+   {
+     id: 'my-game',
+     title: 'My Game',
+     description: 'A short description',
+     path: '/experiments/my-game/index.html',
+     displayMode: 'modal',  // or 'fullscreen'
+     thumbnail: null,       // optional: '/experiments/my-game/thumb.webp'
+   }
+   ```
+
+### Display Modes
+
+- **`modal`**: Opens in an overlay on the Vibecoding page (good for small demos)
+- **`fullscreen`**: Navigates to `/experiment/[id]` with a back button (good for games)
+
+### Extracting Experiments
+
+Each experiment in `public/experiments/` is self-contained. To deploy independently:
+1. Copy the experiment folder
+2. It already has `index.html` as entry point - ready to deploy anywhere
+
+### Complex Experiments
+
+For experiments needing their own build process (React, bundlers, etc.):
+1. Create in `experiments/[name]/` with its own `package.json`
+2. Build output goes to `public/experiments/[name]/`
+3. Register the same way in `src/experiments.js`
 
 ## Important Notes
 
