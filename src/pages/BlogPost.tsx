@@ -2,12 +2,13 @@ import '../assets/css/fonts.css';
 import '../App.css';
 import '../styles/Blogposts.css';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { ReactComponent as PauAvatar } from '../assets/svg/pauavatar.svg';
 import type { ColorPalette } from '../types';
 import blogPosts from '../blogposts';
 
-function Blogposts() {
+function BlogPost() {
+  const { postId } = useParams<{ postId: string }>();
   const navigate = useNavigate();
 
   const defaultColorPalette: ColorPalette = {
@@ -15,6 +16,12 @@ function Blogposts() {
     background: `transparent`
   };
   const [colorPalette, setColorPalette] = useState<ColorPalette>(defaultColorPalette);
+
+  const post = blogPosts.find(p => p.id === postId);
+
+  if (!post) {
+    return <Navigate to="/blogposts" replace />;
+  }
 
   const setNewRandomColorPalette = () => {
     const randomColorPalette: ColorPalette = {
@@ -38,27 +45,22 @@ function Blogposts() {
   return (
     <div className="App" style={{backgroundColor: colorPalette.background, color: colorPalette.text}}>
       <PauAvatar className="pauAvatarSvg" onClick={setNewRandomColorPalette} />
-      <div className="centered-header">
-        <h1>Blogposts</h1>
-      </div>
       <div className='content'>
-        <div className="blog-list">
-          {blogPosts.map((post) => (
-            <div
-              key={post.id}
-              className="blog-entry"
-              onClick={() => navigate(`/blogposts/${post.id}`)}
-              style={{ borderColor: colorPalette.text }}
-            >
-              <h2>{post.title}</h2>
-              <span className="blog-date">{post.date}</span>
-              <p className="blog-excerpt">{post.excerpt}</p>
-            </div>
-          ))}
+        <div className="blog-post">
+          <span className="back-link" onClick={() => navigate('/blogposts')}>
+            &larr; Back to posts
+          </span>
+          <div className="blog-post-header">
+            <h2>{post.title}</h2>
+            <span className="blog-date">{post.date}</span>
+          </div>
+          <div className="blog-post-content">
+            {post.content}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-export default Blogposts;
+export default BlogPost;

@@ -3,13 +3,14 @@ import Home from './pages/Home';
 import Norda from './pages/Norda';
 import Bikepack from './pages/Bikepack';
 import Blogposts from './pages/Blogposts';
+import BlogPost from './pages/BlogPost';
 import Vibecoding from './pages/Vibecoding';
 import ExperimentFullscreen from './pages/ExperimentFullscreen';
 import TransitionWrapper from './components/TransitionWrapper';
 
 function App() {
   const location = useLocation();
-  const pathname = location.pathname.replace('/', '') || '';
+  const pathname = location.pathname.split('/')[1] || '';
 
   // Fullscreen experiments render without the page wrapper
   if (location.pathname.startsWith('/experiment/')) {
@@ -29,6 +30,7 @@ function App() {
           <Route path="/norda" element={<Norda />} />
           <Route path="/bikepack" element={<Bikepack />} />
           <Route path="/blogposts" element={<Blogposts />} />
+          <Route path="/blogposts/:postId" element={<BlogPost />} />
           <Route path="/vibecoding" element={<Vibecoding />} />
         </Routes>
       </TransitionWrapper>
