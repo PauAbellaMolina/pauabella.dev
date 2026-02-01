@@ -15,7 +15,7 @@ function BlogPost() {
   }
 
   return (
-    <div className="App">
+    <div className="App" style={{color: '#0f4c81'}}>
       <div className='content'>
         <div className="blog-post">
           <span className="back-link" onClick={() => navigate('/blogposts')}>
