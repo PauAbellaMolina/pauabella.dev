@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import type { Experiment } from '../types';
-import './ExperimentModal.css';
+import '../styles/ExperimentModal.css';
 
 interface ExperimentModalProps {
   experiment: Experiment;

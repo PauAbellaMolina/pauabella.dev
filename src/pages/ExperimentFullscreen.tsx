@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import experiments from '../experiments';
-import './ExperimentFullscreen.css';
+import '../styles/ExperimentFullscreen.css';
 
 function ExperimentFullscreen() {
   const { experimentId } = useParams<{ experimentId: string }>();
