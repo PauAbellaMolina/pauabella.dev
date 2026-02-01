@@ -29,6 +29,14 @@ const experiments: Experiment[] = [
     displayMode: 'fullscreen',
     thumbnail: null,
   },
+  {
+    id: 'color-match',
+    title: "Don't Match!",
+    description: 'A color name appears — tap any color except the one it says. How many rounds can you survive?',
+    path: '/experiments/color-match/index.html',
+    displayMode: 'fullscreen',
+    thumbnail: null,
+  },
 ];
 
 export default experiments;

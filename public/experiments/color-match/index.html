@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Don't Match!</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="game-container">
+    <div class="header">
+      <span class="score">Score: <span id="score">0</span></span>
+    </div>
+
+    <!-- Start Screen -->
+    <div class="screen" id="startScreen">
+      <h1>Don't Match!</h1>
+      <p>A color name will appear. Tap any color <strong>except</strong> the one it says. Be quick — you only have 1.5 seconds!</p>
+      <button id="startBtn">Play</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div class="screen hidden" id="gameScreen">
+      <div class="word-area">
+        <div class="timer-bar-bg">
+          <div class="timer-bar" id="timerBar"></div>
+        </div>
+        <div class="word" id="colorWord"></div>
+      </div>
+      <div class="colors">
+        <div class="color-btn" data-color="red">RED</div>
+        <div class="color-btn" data-color="yellow">YELLOW</div>
+        <div class="color-btn" data-color="blue">BLUE</div>
+        <div class="color-btn" data-color="green">GREEN</div>
+      </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div class="screen hidden" id="gameOverScreen">
+      <h1>Game Over</h1>
+      <p id="gameOverReason">You tapped the matching color!</p>
+      <p class="final-score">You survived <span id="finalScore">0</span> rounds</p>
+      <button id="restartBtn">Play Again</button>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,259 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.game-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header {
+  padding: 1rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  width: 100%;
+  text-align: center;
+}
+
+/* Screens */
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 1.5rem;
+}
+
+.screen.hidden {
+  display: none;
+}
+
+.screen h1 {
+  font-size: 2.8rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.screen p {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  text-align: center;
+  margin-bottom: 0.75rem;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.final-score {
+  font-size: 1.4rem !important;
+  opacity: 1 !important;
+  font-weight: 600;
+  margin-bottom: 1.5rem !important;
+}
+
+button {
+  padding: 1rem 3rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  background: #e94560;
+  color: white;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4);
+  margin-top: 0.75rem;
+}
+
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 30px rgba(233, 69, 96, 0.6);
+}
+
+button:active {
+  transform: scale(0.95);
+}
+
+/* Game layout */
+#gameScreen {
+  justify-content: space-between;
+  padding: 1.5rem 1rem 2.5rem;
+}
+
+.word-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  flex: 1;
+  justify-content: center;
+}
+
+.timer-bar-bg {
+  width: 75%;
+  max-width: 300px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+  margin-bottom: 2rem;
+  overflow: hidden;
+}
+
+.timer-bar {
+  height: 100%;
+  width: 100%;
+  background: #e94560;
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+.timer-bar.urgent {
+  background: #ff3333;
+}
+
+.word {
+  font-size: 4.5rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+  animation: wordPop 0.2s ease-out;
+}
+
+@keyframes wordPop {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Color grid */
+.colors {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+}
+
+.color-btn {
+  aspect-ratio: 1;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.color-btn[data-color="red"] {
+  background: #e74c3c;
+}
+
+.color-btn[data-color="yellow"] {
+  background: #f1c40f;
+  color: #333;
+  text-shadow: none;
+}
+
+.color-btn[data-color="blue"] {
+  background: #3498db;
+}
+
+.color-btn[data-color="green"] {
+  background: #2ecc71;
+}
+
+.color-btn:active {
+  transform: scale(0.9);
+}
+
+.color-btn.correct {
+  animation: flashCorrect 0.35s ease-out;
+}
+
+.color-btn.wrong {
+  animation: flashWrong 0.4s ease-out;
+}
+
+@keyframes flashCorrect {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  40% {
+    transform: scale(0.92);
+    filter: brightness(1.4);
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+@keyframes flashWrong {
+  0% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-10px);
+  }
+  40% {
+    transform: translateX(10px);
+  }
+  60% {
+    transform: translateX(-6px);
+  }
+  80% {
+    transform: translateX(6px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .screen h1 {
+    font-size: 2.2rem;
+  }
+
+  .word {
+    font-size: 3.2rem;
+  }
+
+  .colors {
+    gap: 8px;
+  }
+
+  .color-btn {
+    font-size: 1rem;
+    border-radius: 14px;
+  }
+}
