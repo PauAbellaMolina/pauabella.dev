@@ -11,10 +11,10 @@ This is **pauabella.dev**, a personal portfolio website for Pau Abella built wit
 ## Tech Stack
 
 - **Framework:** React 18 (Create React App)
+- **Language:** TypeScript
 - **Routing:** react-router-dom v7
 - **Styling:** Plain CSS (no preprocessors or CSS-in-JS)
 - **Deployment:** Netlify (SPA redirect configured in `public/_redirects`)
-- **Language:** JavaScript (no TypeScript)
 
 ## Project Structure
 
@@ -34,29 +34,31 @@ pauabella.dev/
 │       ├── package.json
 │       └── src/
 ├── src/
-│   ├── App.js              # Main app with route definitions
+│   ├── App.tsx             # Main app with route definitions
 │   ├── App.css             # Primary stylesheet (all page styles)
-│   ├── experiments.js      # Experiments registry/config
-│   ├── index.js            # React entry point with BrowserRouter
+│   ├── experiments.ts      # Experiments registry/config
+│   ├── types.ts            # TypeScript type definitions
+│   ├── index.tsx           # React entry point with BrowserRouter
 │   ├── index.css           # Base/reset styles
 │   ├── assets/
 │   │   ├── css/fonts.css   # Custom font definitions
 │   │   ├── fonts/          # Custom font files (.otf)
 │   │   ├── images/         # Image assets (webp format)
 │   │   └── svg/            # SVG assets
+│   ├── styles/             # Component CSS files
+│   │   ├── Vibecoding.css
+│   │   ├── ExperimentModal.css
+│   │   └── ExperimentFullscreen.css
 │   ├── components/
-│   │   ├── TransitionWrapper.js  # Page transition wrapper
-│   │   ├── ExperimentModal.js    # Modal for inline experiments
-│   │   └── ExperimentModal.css
+│   │   ├── TransitionWrapper.tsx
+│   │   └── ExperimentModal.tsx
 │   └── pages/
-│       ├── Home.js         # Main landing page
-│       ├── Norda.js        # Norda Tickets project page
-│       ├── Bikepack.js     # Bikepacking photo gallery
-│       ├── Blogposts.js    # Blog posts page
-│       ├── Vibecoding.js   # Vibecoding experiments listing
-│       ├── Vibecoding.css
-│       ├── ExperimentFullscreen.js  # Fullscreen experiment wrapper
-│       └── ExperimentFullscreen.css
+│       ├── Home.tsx
+│       ├── Norda.tsx
+│       ├── Bikepack.tsx
+│       ├── Blogposts.tsx
+│       ├── Vibecoding.tsx
+│       └── ExperimentFullscreen.tsx
 └── package.json
 ```
 
@@ -73,6 +75,7 @@ Each page component follows a consistent pattern:
 
 ### Styling Patterns
 
+- **CSS files** go in `src/styles/` - keep pages/ and components/ folders for .tsx only
 - **Page backgrounds:** Set via CSS classes on `.page-wrapper` (e.g., `.norda .page-background`)
 - **Color palettes:** Each page has a default accent color defined in state:
   - Home: `#0f4c81` (blue)
@@ -89,7 +92,7 @@ Each page component follows a consistent pattern:
 
 ### Routing
 
-Routes are defined in `App.js`:
+Routes are defined in `App.tsx`:
 - `/` → Home
 - `/norda` → Norda project page
 - `/bikepack` → Bikepacking gallery
@@ -116,7 +119,7 @@ npm test        # Run tests
 ## Adding New Pages
 
 1. Create a new component in `src/pages/` following the existing pattern
-2. Add a route in `src/App.js`
+2. Add a route in `src/App.tsx`
 3. Add page-specific background color in `App.css` (e.g., `.newpage .page-background`)
 4. Add selection colors if needed (e.g., `.newpage .App ::selection`)
 
@@ -134,8 +137,8 @@ The `/vibecoding` section hosts containerized experiments (mini-apps, games, dem
    ├── style.css     # Styles
    └── script.js     # Logic
    ```
-3. **Register in `src/experiments.js`:**
-   ```javascript
+3. **Register in `src/experiments.ts`:**
+   ```typescript
    {
      id: 'my-game',
      title: 'My Game',
@@ -162,7 +165,7 @@ Each experiment in `public/experiments/` is self-contained. To deploy independen
 For experiments needing their own build process (React, bundlers, etc.):
 1. Create in `experiments/[name]/` with its own `package.json`
 2. Build output goes to `public/experiments/[name]/`
-3. Register the same way in `src/experiments.js`
+3. Register the same way in `src/experiments.ts`
 
 ## Important Notes
 
@@ -171,3 +174,29 @@ For experiments needing their own build process (React, bundlers, etc.):
 - Custom fonts are loaded locally via `@font-face` in `fonts.css`
 - The avatar click interaction provides a fun color randomization feature
 - Keep the design minimalist and focused - avoid adding unnecessary complexity
+
+---
+
+## Rules for AI Assistants
+
+When working on this codebase, follow these guidelines:
+
+### Git Workflow
+
+- **Always open a PR** after completing work - never leave changes only on a branch
+- **Commit often** with clear, descriptive messages
+- **Keep PRs focused** - one feature or fix per PR when possible
+- Target PRs to the appropriate base branch (usually `main` or `claudecode`)
+
+### Code Organization
+
+- **CSS files** belong in `src/styles/`, not alongside components
+- **Only .tsx files** in `pages/` and `components/` folders
+- **Update CLAUDE.md** when adding new pages, routes, or significant features
+
+### Before Finishing
+
+1. Ensure all changes are committed
+2. Push to the remote branch
+3. Open a PR with a clear summary
+4. Update CLAUDE.md if the project structure changed
