@@ -35,6 +35,10 @@
   background-color: #fff0db;
 }
 
+.vibecoding .page-background {
+  background-color: #fff0db;
+}
+
 @keyframes fadeIn {
   0% {
     opacity: 0;
@@ -91,6 +95,12 @@
   -webkit-text-fill-color: #fff0db;
 }
 
+.vibecoding .App ::selection {
+  background-color: #0f4c81;
+  color: #fff0db;
+  -webkit-text-fill-color: #fff0db;
+}
+
 @keyframes zoom-in-zoom-out {
   0% {
     transform: scale(1, 1);
@@ -117,6 +127,9 @@ h1 {
 }
 .blogposts h1 {
   font-size: 3.5rem;
+}
+.vibecoding h1 {
+  font-size: 3rem;
 }
 /* h1:hover {
   background: -webkit-linear-gradient(0deg, #9D6A06, #910330, #5E0BBD, #00698E);
@@ -159,6 +172,9 @@ a:hover {
   padding: 6rem 3rem 0 3rem;
 }
 .blogposts .centered-header {
+  padding: 6rem 3rem 0 3rem;
+}
+.vibecoding .centered-header {
   padding: 6rem 3rem 0 3rem;
 }
 
@@ -217,6 +233,9 @@ a:hover {
   }
   .blogposts h1 {
     font-size: 10.5vw;
+  }
+  .vibecoding h1 {
+    font-size: 9vw;
   }
   .bikepack .App {
     gap: 2rem;

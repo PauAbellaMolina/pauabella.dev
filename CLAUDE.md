@@ -40,7 +40,8 @@ pauabella.dev/
 │       ├── Home.js         # Main landing page
 │       ├── Norda.js        # Norda Tickets project page
 │       ├── Bikepack.js     # Bikepacking photo gallery
-│       └── Blogposts.js    # Blog posts page
+│       ├── Blogposts.js    # Blog posts page
+│       └── Vibecoding.js   # Vibecoding experiments page
 └── package.json
 ```
 
@@ -63,6 +64,7 @@ Each page component follows a consistent pattern:
   - Norda: `#7958CE` (purple)
   - Bikepack: `#0f4c81` (blue)
   - Blogposts: `#0f4c81` (blue)
+  - Vibecoding: `#0f4c81` (blue)
 - **Typography:**
   - Headings: 'TASA Orbiter' font
   - Body text: 'Valverde' font
@@ -77,6 +79,7 @@ Routes are defined in `App.js`:
 - `/norda` → Norda project page
 - `/bikepack` → Bikepacking gallery
 - `/blogposts` → Blog posts page
+- `/vibecoding` → Vibecoding experiments page
 
 The URL pathname (without `/`) is added as a class to `.page-wrapper` for page-specific styling.
 

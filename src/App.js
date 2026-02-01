@@ -3,6 +3,7 @@ import Home from './pages/Home';
 import Norda from './pages/Norda';
 import Bikepack from './pages/Bikepack';
 import Blogposts from './pages/Blogposts';
+import Vibecoding from './pages/Vibecoding';
 import TransitionWrapper from './components/TransitionWrapper';
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
           <Route path="/norda" element={<Norda />} />
           <Route path="/bikepack" element={<Bikepack />} />
           <Route path="/blogposts" element={<Blogposts />} />
+          <Route path="/vibecoding" element={<Vibecoding />} />
         </Routes>
       </TransitionWrapper>
     </div>
