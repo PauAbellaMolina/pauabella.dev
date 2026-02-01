@@ -1,9 +1,15 @@
 import { useEffect } from 'react';
+import type { Experiment } from '../types';
 import './ExperimentModal.css';
 
-function ExperimentModal({ experiment, onClose }) {
+interface ExperimentModalProps {
+  experiment: Experiment;
+  onClose: () => void;
+}
+
+function ExperimentModal({ experiment, onClose }: ExperimentModalProps) {
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
       }
@@ -17,7 +23,7 @@ function ExperimentModal({ experiment, onClose }) {
     };
   }, [onClose]);
 
-  const handleBackdropClick = (e) => {
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
     }

@@ -3,16 +3,17 @@ import '../assets/css/fonts.css';
 import '../App.css';
 import { useState } from 'react';
 import { ReactComponent as PauAvatar } from '../assets/svg/pauavatar.svg';
+import type { ColorPalette } from '../types';
 
 function Norda() {
-  const defaultColorPalette = {
+  const defaultColorPalette: ColorPalette = {
     text: `#7958CE`,
     background: `transparent`
   };
-  const [colorPalette, setColorPalette] = useState(defaultColorPalette);
+  const [colorPalette, setColorPalette] = useState<ColorPalette>(defaultColorPalette);
 
   const setNewRandomColorPalette = () => {
-    const randomColorPalette = {
+    const randomColorPalette: ColorPalette = {
       text: getRandomColor(),
       background: getRandomColor()
     };
@@ -20,12 +21,12 @@ function Norda() {
   };
 
   const getRandomColor = () => {
-    let r = generateRandomRGB();
-    let g = generateRandomRGB();
-    let b = generateRandomRGB();
+    const r = generateRandomRGB();
+    const g = generateRandomRGB();
+    const b = generateRandomRGB();
     return `rgb(${r}, ${g}, ${b})`;
   };
-  
+
   const generateRandomRGB = () => {
     return Math.floor(Math.random() * 256);
   }
@@ -57,4 +58,4 @@ function Norda() {
   );
 }
 
-export default Norda; 
+export default Norda;

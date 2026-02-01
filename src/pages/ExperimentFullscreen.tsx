@@ -3,7 +3,7 @@ import experiments from '../experiments';
 import './ExperimentFullscreen.css';
 
 function ExperimentFullscreen() {
-  const { experimentId } = useParams();
+  const { experimentId } = useParams<{ experimentId: string }>();
   const navigate = useNavigate();
 
   const experiment = experiments.find(e => e.id === experimentId);

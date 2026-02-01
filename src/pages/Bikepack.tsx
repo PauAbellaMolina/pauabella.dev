@@ -14,16 +14,17 @@ import BP9 from '../assets/images/bp9.webp';
 import BP10 from '../assets/images/bp10.webp';
 import BP11 from '../assets/images/bp11.webp';
 import BP12 from '../assets/images/bp12.webp';
+import type { ColorPalette } from '../types';
 
 function Bikepack() {
-  const defaultColorPalette = {
+  const defaultColorPalette: ColorPalette = {
     text: `#0f4c81`,
     background: `transparent`
   };
-  const [colorPalette, setColorPalette] = useState(defaultColorPalette);
+  const [colorPalette, setColorPalette] = useState<ColorPalette>(defaultColorPalette);
 
   const setNewRandomColorPalette = () => {
-    const randomColorPalette = {
+    const randomColorPalette: ColorPalette = {
       text: getRandomColor(),
       background: getRandomColor()
     };
@@ -31,12 +32,12 @@ function Bikepack() {
   };
 
   const getRandomColor = () => {
-    let r = generateRandomRGB();
-    let g = generateRandomRGB();
-    let b = generateRandomRGB();
+    const r = generateRandomRGB();
+    const g = generateRandomRGB();
+    const b = generateRandomRGB();
     return `rgb(${r}, ${g}, ${b})`;
   };
-  
+
   const generateRandomRGB = () => {
     return Math.floor(Math.random() * 256);
   }
@@ -65,4 +66,4 @@ function Bikepack() {
   );
 }
 
-export default Bikepack; 
+export default Bikepack;

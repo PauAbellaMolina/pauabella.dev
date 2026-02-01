@@ -2,16 +2,17 @@ import '../assets/css/fonts.css';
 import '../App.css';
 import { useState } from 'react';
 import { ReactComponent as PauAvatar } from '../assets/svg/pauavatar.svg';
+import type { ColorPalette } from '../types';
 
 function Blogposts() {
-  const defaultColorPalette = {
+  const defaultColorPalette: ColorPalette = {
     text: `#0f4c81`,
     background: `transparent`
   };
-  const [colorPalette, setColorPalette] = useState(defaultColorPalette);
+  const [colorPalette, setColorPalette] = useState<ColorPalette>(defaultColorPalette);
 
   const setNewRandomColorPalette = () => {
-    const randomColorPalette = {
+    const randomColorPalette: ColorPalette = {
       text: getRandomColor(),
       background: getRandomColor()
     };
@@ -19,9 +20,9 @@ function Blogposts() {
   };
 
   const getRandomColor = () => {
-    let r = generateRandomRGB();
-    let g = generateRandomRGB();
-    let b = generateRandomRGB();
+    const r = generateRandomRGB();
+    const g = generateRandomRGB();
+    const b = generateRandomRGB();
     return `rgb(${r}, ${g}, ${b})`;
   };
 
