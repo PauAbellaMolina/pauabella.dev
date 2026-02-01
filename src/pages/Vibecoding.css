@@ -1,0 +1,77 @@
+.experiments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.experiment-card {
+  background: rgba(255, 255, 255, 0.5);
+  border: 2px solid;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.experiment-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.experiment-thumbnail {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.experiment-thumbnail-placeholder {
+  width: 100%;
+  height: 160px;
+  background: linear-gradient(135deg, rgba(15, 76, 129, 0.1) 0%, rgba(15, 76, 129, 0.2) 100%);
+}
+
+.experiment-info {
+  padding: 1rem;
+}
+
+.experiment-info h3 {
+  font-family: 'TASA Orbiter', sans-serif;
+  font-size: 1.25rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.experiment-info p {
+  font-family: 'Valverde', serif;
+  font-size: 1rem;
+  margin: 0 0 0.75rem 0;
+  opacity: 0.8;
+}
+
+.experiment-mode {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+}
+
+@media (max-width: 600px) {
+  .experiments-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .experiment-thumbnail,
+  .experiment-thumbnail-placeholder {
+    height: 140px;
+  }
+
+  .experiment-info h3 {
+    font-size: 1.1rem;
+  }
+
+  .experiment-info p {
+    font-size: 0.9rem;
+  }
+}
