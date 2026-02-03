@@ -37,6 +37,14 @@ const experiments: Experiment[] = [
     displayMode: 'fullscreen',
     thumbnail: null,
   },
+  {
+    id: 'keepers-isle',
+    title: "Keeper's Isle",
+    description: 'Explore a tiny island as its lighthouse keeper. An isometric world to wander.',
+    path: '/experiments/keepers-isle/index.html',
+    displayMode: 'fullscreen',
+    thumbnail: null,
+  },
 ];
 
 export default experiments;
