@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Keeper's Isle</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="start-screen" class="screen">
+    <h1>Keeper's Isle</h1>
+    <p>Explore a tiny island as its lighthouse keeper. Walk the stone paths, wander through gardens, and watch the waves.</p>
+    <div class="controls-hint">
+      <span class="key-hint">Arrow keys</span> or <span class="key-hint">WASD</span> to move
+    </div>
+    <button id="start-btn">Begin</button>
+  </div>
+
+  <div id="game-container" class="hidden">
+    <div id="game-hud">
+      <span id="location-label">The Shore</span>
+    </div>
+    <canvas id="game-canvas"></canvas>
+    <div id="mobile-controls">
+      <button class="dpad-btn" id="btn-up" aria-label="Move up">&#9650;</button>
+      <div class="dpad-row">
+        <button class="dpad-btn" id="btn-left" aria-label="Move left">&#9664;</button>
+        <button class="dpad-btn" id="btn-down" aria-label="Move down">&#9660;</button>
+        <button class="dpad-btn" id="btn-right" aria-label="Move right">&#9654;</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
