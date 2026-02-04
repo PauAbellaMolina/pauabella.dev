@@ -648,6 +648,12 @@
       this.dialogueBox = document.getElementById('dialogue-box');
       this.dialogueText = document.getElementById('dialogue-text');
 
+      // Inventory
+      this.inventory = { sticks: 0, stones: 0 };
+      this.harvestedObjects = new Set(); // tracks "col,row" strings
+      this.invSticksEl = document.getElementById('inv-sticks');
+      this.invStonesEl = document.getElementById('inv-stones');
+
       // Time
       this.lastTime = 0;
       this.running = false;
@@ -808,7 +814,7 @@
       const tile = TERRAIN[row][col];
       if (tile === T.DEEP_WATER || tile === T.SHALLOW_WATER) return false;
       const obj = OBJECTS[row][col];
-      if (obj === O.TREE || obj === O.ROCK || obj === O.COTTAGE || obj === O.LIGHTHOUSE || obj === O.PIER_POST || obj === O.SIGNPOST || obj === O.WELL) return false;
+      if (obj === O.TREE || obj === O.ROCK || obj === O.BUSH || obj === O.COTTAGE || obj === O.LIGHTHOUSE || obj === O.PIER_POST || obj === O.SIGNPOST || obj === O.WELL) return false;
       return true;
     }
 
@@ -860,10 +866,43 @@
       const data = INTERACTIONS[obj];
       if (!data) return;
 
+      const key = `${col},${row}`;
+      const harvested = this.harvestedObjects.has(key);
+
+      // Handle B button collection for bushes and rocks
+      if (button === 'b') {
+        if (obj === O.BUSH && !harvested) {
+          this.inventory.sticks++;
+          this.harvestedObjects.add(key);
+          this.updateInventory();
+          this.showDialogue('You found a stick!');
+          return;
+        }
+        if (obj === O.ROCK && !harvested) {
+          this.inventory.stones++;
+          this.harvestedObjects.add(key);
+          this.updateInventory();
+          this.showDialogue('You picked up a stone.');
+          return;
+        }
+        // Show "already collected" message for harvested objects
+        if ((obj === O.BUSH || obj === O.ROCK) && harvested) {
+          this.showDialogue(obj === O.BUSH
+            ? 'You already searched this bush.'
+            : 'You already took a stone from here.');
+          return;
+        }
+      }
+
       const text = data[button];
       if (text) {
         this.showDialogue(text);
       }
+    }
+
+    updateInventory() {
+      if (this.invSticksEl) this.invSticksEl.textContent = this.inventory.sticks;
+      if (this.invStonesEl) this.invStonesEl.textContent = this.inventory.stones;
     }
 
     showDialogue(text) {
