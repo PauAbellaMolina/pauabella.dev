@@ -14,7 +14,7 @@
     <h1>Keeper's Isle</h1>
     <p>Explore a tiny island as its lighthouse keeper. Walk the stone paths, wander through gardens, and watch the waves.</p>
     <div class="controls-hint">
-      <span class="key-hint">Arrow keys</span> or <span class="key-hint">WASD</span> to move
+      <span class="key-hint">Arrows</span> / <span class="key-hint">WASD</span> move &middot; <span class="key-hint">X</span> examine &middot; <span class="key-hint">Z</span> act
     </div>
     <button id="start-btn">Begin</button>
   </div>
@@ -24,13 +24,24 @@
       <span id="location-label">The Shore</span>
     </div>
     <canvas id="game-canvas"></canvas>
-    <div id="mobile-controls">
-      <button class="dpad-btn" id="btn-up" aria-label="Move up">&#9650;</button>
-      <div class="dpad-row">
-        <button class="dpad-btn" id="btn-left" aria-label="Move left">&#9664;</button>
-        <button class="dpad-btn" id="btn-down" aria-label="Move down">&#9660;</button>
-        <button class="dpad-btn" id="btn-right" aria-label="Move right">&#9654;</button>
+
+    <div id="game-controls">
+      <div id="action-buttons">
+        <button class="action-btn" id="btn-b" aria-label="Action B">B</button>
+        <button class="action-btn" id="btn-a" aria-label="Action A">A</button>
       </div>
+      <div id="dpad">
+        <button class="dpad-btn" id="btn-up" aria-label="Move up">&#9650;</button>
+        <button class="dpad-btn" id="btn-left" aria-label="Move left">&#9664;</button>
+        <div class="dpad-center"></div>
+        <button class="dpad-btn" id="btn-right" aria-label="Move right">&#9654;</button>
+        <button class="dpad-btn" id="btn-down" aria-label="Move down">&#9660;</button>
+      </div>
+    </div>
+
+    <div id="dialogue-box" class="hidden">
+      <p id="dialogue-text"></p>
+      <span id="dialogue-hint">A to close</span>
     </div>
   </div>
 

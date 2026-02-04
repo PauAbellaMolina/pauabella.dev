@@ -37,6 +37,8 @@
     COTTAGE:    5,
     TALL_GRASS: 6,
     PIER_POST:  7,
+    SIGNPOST:   8,
+    WELL:       9,
   };
 
   // Colors derived from the site palette
@@ -112,11 +114,11 @@
     [ 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 4
     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 5
     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 6
-    [ 0, 0, 0, 0, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0], // 7
+    [ 0, 0, 0, 0, 2, 0, 1, 0, 0, 8, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0], // 7
     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 8
     [ 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0], // 9
     [ 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0], // 10
-    [ 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], // 11
+    [ 0, 0, 0, 0, 0, 3, 0, 0, 9, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0], // 11
     [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0], // 12
     [ 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0], // 13
     [ 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0], // 14
@@ -281,6 +283,12 @@
         break;
       case O.PIER_POST:
         drawPierPost(ctx, sx, sy);
+        break;
+      case O.SIGNPOST:
+        drawSignpost(ctx, sx, sy);
+        break;
+      case O.WELL:
+        drawWell(ctx, sx, sy);
         break;
     }
   }
@@ -456,6 +464,105 @@
     ctx.fillRect(sx - 4, sy - 8, 8, 3);
   }
 
+  function drawSignpost(ctx, sx, sy) {
+    // Pole
+    ctx.fillStyle = C.wood;
+    ctx.fillRect(sx - 1.5, sy - 4, 3, 16);
+
+    // Sign board
+    ctx.fillStyle = C.woodDark;
+    ctx.fillRect(sx - 10, sy - 16, 20, 12);
+
+    // Sign face
+    ctx.fillStyle = C.sand;
+    ctx.fillRect(sx - 8, sy - 14, 16, 8);
+
+    // Text lines (tiny decorative marks)
+    ctx.fillStyle = C.woodDark;
+    ctx.globalAlpha = 0.4;
+    ctx.fillRect(sx - 6, sy - 12, 12, 1.5);
+    ctx.fillRect(sx - 6, sy - 9, 8, 1.5);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawWell(ctx, sx, sy) {
+    const wx = sx;
+    const wy = sy + 2;
+
+    // Base stone ring (ellipse)
+    ctx.fillStyle = C.rockGray;
+    ctx.beginPath();
+    ctx.ellipse(wx, wy + 2, 12, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Inner ring
+    ctx.fillStyle = C.rockLight;
+    ctx.beginPath();
+    ctx.ellipse(wx, wy, 11, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Dark water inside
+    ctx.fillStyle = C.deepWater;
+    ctx.beginPath();
+    ctx.ellipse(wx, wy, 7, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Support posts
+    ctx.fillStyle = C.wood;
+    ctx.fillRect(wx - 10, wy - 18, 3, 18);
+    ctx.fillRect(wx + 7, wy - 18, 3, 18);
+
+    // Roof beam
+    ctx.fillStyle = C.woodDark;
+    ctx.fillRect(wx - 11, wy - 20, 22, 3);
+
+    // Small roof
+    ctx.fillStyle = C.cottageRoof;
+    ctx.beginPath();
+    ctx.moveTo(wx - 13, wy - 19);
+    ctx.lineTo(wx, wy - 26);
+    ctx.lineTo(wx + 13, wy - 19);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // ── Interaction Data ───────────────────────
+
+  const INTERACTIONS = {
+    [O.SIGNPOST]: {
+      a: 'A weathered signpost reads: "Welcome to Keeper\'s Isle. The lighthouse watches to the east."',
+      b: 'You give the post a firm pat. It wobbles slightly.',
+    },
+    [O.WELL]: {
+      a: 'An old stone well. You can hear water echoing far below.',
+      b: 'You lower the bucket and draw up cold, clear water. Refreshing.',
+    },
+    [O.LIGHTHOUSE]: {
+      a: 'The lighthouse tower. Its lamp guides ships home each night.',
+      b: 'The heavy door is locked. You\'ll need to find the key.',
+    },
+    [O.COTTAGE]: {
+      a: 'Your cozy cottage. A thin curl of smoke rises from the chimney.',
+      b: 'You peek through the window. Everything looks tidy inside.',
+    },
+    [O.TREE]: {
+      a: 'A sturdy tree. Its branches sway gently in the sea breeze.',
+      b: 'You shake the trunk. A few leaves flutter down.',
+    },
+    [O.ROCK]: {
+      a: 'A smooth, sun-warmed stone.',
+      b: 'You give it a push. It doesn\'t budge.',
+    },
+    [O.BUSH]: {
+      a: 'A wild bush. Small berries peek through the leaves.',
+      b: 'You rustle through the bush. A startled bird flies out.',
+    },
+    [O.PIER_POST]: {
+      a: 'A weathered mooring post. Salt-crusted rope hangs from it.',
+      b: 'You tug the rope. It holds firm.',
+    },
+  };
+
   // ── Player Drawing ─────────────────────────
 
   function drawPlayer(ctx, sx, sy, direction) {
@@ -533,7 +640,13 @@
 
       // Input
       this.keys = {};
+      this.justPressed = {};
       this.moveQueue = null;
+
+      // Dialogue state
+      this.dialogueOpen = false;
+      this.dialogueBox = document.getElementById('dialogue-box');
+      this.dialogueText = document.getElementById('dialogue-text');
 
       // Time
       this.lastTime = 0;
@@ -555,8 +668,11 @@
 
     setupInput() {
       window.addEventListener('keydown', (e) => {
-        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d'].includes(e.key)) {
+        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','x','z'].includes(e.key)) {
           e.preventDefault();
+        }
+        if (!this.keys[e.key]) {
+          this.justPressed[e.key] = true;
         }
         this.keys[e.key] = true;
       });
@@ -565,8 +681,8 @@
       });
       window.addEventListener('resize', () => this.resize());
 
-      // Mobile D-pad
-      const bindBtn = (id, dir) => {
+      // D-pad buttons (hold-style, like directional keys)
+      const bindDpad = (id, dir) => {
         const btn = document.getElementById(id);
         if (!btn) return;
         const start = (e) => { e.preventDefault(); this.keys[dir] = true; };
@@ -578,10 +694,24 @@
         btn.addEventListener('mouseup', end);
         btn.addEventListener('mouseleave', end);
       };
-      bindBtn('btn-up', 'ArrowUp');
-      bindBtn('btn-down', 'ArrowDown');
-      bindBtn('btn-left', 'ArrowLeft');
-      bindBtn('btn-right', 'ArrowRight');
+      bindDpad('btn-up', 'ArrowUp');
+      bindDpad('btn-down', 'ArrowDown');
+      bindDpad('btn-left', 'ArrowLeft');
+      bindDpad('btn-right', 'ArrowRight');
+
+      // A/B buttons (tap-style, trigger on press)
+      const bindAction = (id, key) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const tap = (e) => {
+          e.preventDefault();
+          this.justPressed[key] = true;
+        };
+        btn.addEventListener('touchstart', tap, { passive: false });
+        btn.addEventListener('mousedown', tap);
+      };
+      bindAction('btn-a', 'x');   // A button maps to X key
+      bindAction('btn-b', 'z');   // B button maps to Z key
     }
 
     start() {
@@ -603,6 +733,23 @@
     // ── Update ──
 
     update(dt) {
+      // Handle A/B presses
+      const pressedA = this.justPressed['x'] || this.justPressed['X'];
+      const pressedB = this.justPressed['z'] || this.justPressed['Z'];
+
+      if (this.dialogueOpen) {
+        // Any action button dismisses dialogue
+        if (pressedA || pressedB) {
+          this.hideDialogue();
+        }
+        this.justPressed = {};
+        return; // freeze movement while dialogue is open
+      }
+
+      if (pressedA) this.interact('a');
+      if (pressedB) this.interact('b');
+      this.justPressed = {};
+
       const p = this.player;
 
       if (p.moving) {
@@ -661,7 +808,7 @@
       const tile = TERRAIN[row][col];
       if (tile === T.DEEP_WATER || tile === T.SHALLOW_WATER) return false;
       const obj = OBJECTS[row][col];
-      if (obj === O.TREE || obj === O.ROCK || obj === O.COTTAGE || obj === O.LIGHTHOUSE || obj === O.PIER_POST) return false;
+      if (obj === O.TREE || obj === O.ROCK || obj === O.COTTAGE || obj === O.LIGHTHOUSE || obj === O.PIER_POST || obj === O.SIGNPOST || obj === O.WELL) return false;
       return true;
     }
 
@@ -687,6 +834,47 @@
       if (this.hudLabel) {
         this.hudLabel.textContent = getLocationLabel(this.player.col, this.player.row);
       }
+    }
+
+    // ── Interaction ──
+
+    getFacingTile() {
+      const p = this.player;
+      const dirMap = {
+        up:    { dc: 0, dr: -1 },
+        down:  { dc: 0, dr:  1 },
+        left:  { dc: -1, dr: 0 },
+        right: { dc:  1, dr: 0 },
+      };
+      const d = dirMap[p.direction] || { dc: 0, dr: 1 };
+      return { col: p.col + d.dc, row: p.row + d.dr };
+    }
+
+    interact(button) {
+      if (this.player.moving) return;
+
+      const { col, row } = this.getFacingTile();
+      if (col < 0 || row < 0 || col >= MAP_COLS || row >= MAP_ROWS) return;
+
+      const obj = OBJECTS[row][col];
+      const data = INTERACTIONS[obj];
+      if (!data) return;
+
+      const text = data[button];
+      if (text) {
+        this.showDialogue(text);
+      }
+    }
+
+    showDialogue(text) {
+      this.dialogueOpen = true;
+      this.dialogueText.textContent = text;
+      this.dialogueBox.classList.remove('hidden');
+    }
+
+    hideDialogue() {
+      this.dialogueOpen = false;
+      this.dialogueBox.classList.add('hidden');
     }
 
     // ── Render ──
