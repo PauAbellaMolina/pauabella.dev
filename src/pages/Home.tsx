@@ -48,7 +48,7 @@ function Home() {
           <p>AI-powered nurse assistant at <Link className="link" to="https://teton.ai">Teton</Link>.</p>
         </span>
         <span>
-          <p>On my free time, I like to <Link className="link" to="/bikepack">bikepack</Link> around Denmark.</p>
+          <p>On my free time, I like to <Link className="link" to="/bikepack">bikepack</Link> around Denmark, write <Link className="link" to="/blogposts">blogposts</Link>, and vibecode <Link className="link" to="/vibecoding">experiments</Link>.</p>
         </span>
         <span>
           <p>Previously built <Link className="link" to="/norda">Norda Tickets</Link> as a side project, had great fun trying to go to market with it.</p>

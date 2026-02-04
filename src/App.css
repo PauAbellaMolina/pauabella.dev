@@ -89,6 +89,11 @@
   -webkit-text-fill-color: #fff0db;
 }
 
+.blogposts .App {
+  gap: 3.5rem;
+  flex-flow: column;
+  justify-content: start;
+}
 .blogposts .App ::selection {
   background-color: #0f4c81;
   color: #fff0db;
