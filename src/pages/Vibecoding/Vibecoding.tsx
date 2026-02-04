@@ -1,12 +1,16 @@
-import '../assets/css/fonts.css';
-import '../App.css';
-import '../styles/Vibecoding.css';
+import '../../assets/css/fonts.css';
+import '../../App.css';
+import '../../styles/Vibecoding.css';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ReactComponent as PauAvatar } from '../assets/svg/pauavatar.svg';
-import experiments from '../experiments';
-import ExperimentModal from '../components/ExperimentModal';
-import type { ColorPalette, Experiment } from '../types';
+import { ReactComponent as PauAvatar } from '../../assets/svg/pauavatar.svg';
+import experiments, { type Experiment } from './experiments';
+import ExperimentModal from '../../components/ExperimentModal';
+
+interface ColorPalette {
+  text: string;
+  background: string;
+}
 
 function Vibecoding() {
   const navigate = useNavigate();

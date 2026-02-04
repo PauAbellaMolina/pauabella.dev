@@ -3,7 +3,11 @@ import '../assets/css/fonts.css';
 import '../App.css';
 import { useState } from 'react';
 import { ReactComponent as PauAvatar } from '../assets/svg/pauavatar.svg';
-import type { ColorPalette } from '../types';
+
+interface ColorPalette {
+  text: string;
+  background: string;
+}
 
 function Home() {
   const defaultColorPalette: ColorPalette = {

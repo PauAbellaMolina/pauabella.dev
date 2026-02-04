@@ -2,10 +2,10 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import Home from './pages/Home';
 import Norda from './pages/Norda';
 import Bikepack from './pages/Bikepack';
-import Blogposts from './pages/Blogposts';
-import BlogPost from './pages/BlogPost';
-import Vibecoding from './pages/Vibecoding';
-import ExperimentFullscreen from './pages/ExperimentFullscreen';
+import Blogposts from './pages/BlogPosts/Blogposts';
+import BlogPost from './pages/BlogPosts/BlogPost';
+import Vibecoding from './pages/Vibecoding/Vibecoding';
+import ExperimentFullscreen from './pages/Vibecoding/ExperimentFullscreen';
 import TransitionWrapper from './components/TransitionWrapper';
 
 function App() {

@@ -1,11 +1,15 @@
-import '../assets/css/fonts.css';
-import '../App.css';
-import '../styles/Blogposts.css';
+import '../../assets/css/fonts.css';
+import '../../App.css';
+import '../../styles/Blogposts.css';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ReactComponent as PauAvatar } from '../assets/svg/pauavatar.svg';
-import type { ColorPalette } from '../types';
-import blogPosts from '../blogposts';
+import { ReactComponent as PauAvatar } from '../../assets/svg/pauavatar.svg';
+import blogPosts from './blogPostsData';
+
+interface ColorPalette {
+  text: string;
+  background: string;
+}
 
 function Blogposts() {
   const navigate = useNavigate();
