@@ -36,8 +36,6 @@ pauabella.dev/
 ├── src/
 │   ├── App.tsx             # Main app with route definitions
 │   ├── App.css             # Primary stylesheet (all page styles)
-│   ├── experiments.ts      # Experiments registry/config
-│   ├── types.ts            # TypeScript type definitions
 │   ├── index.tsx           # React entry point with BrowserRouter
 │   ├── index.css           # Base/reset styles
 │   ├── assets/
@@ -47,6 +45,7 @@ pauabella.dev/
 │   │   └── svg/            # SVG assets
 │   ├── styles/             # Component CSS files
 │   │   ├── Vibecoding.css
+│   │   ├── Blogposts.css
 │   │   ├── ExperimentModal.css
 │   │   └── ExperimentFullscreen.css
 │   ├── components/
@@ -56,9 +55,14 @@ pauabella.dev/
 │       ├── Home.tsx
 │       ├── Norda.tsx
 │       ├── Bikepack.tsx
-│       ├── Blogposts.tsx
-│       ├── Vibecoding.tsx
-│       └── ExperimentFullscreen.tsx
+│       ├── BlogPosts/           # Blog posts feature
+│       │   ├── Blogposts.tsx    # Blog listing page
+│       │   ├── BlogPost.tsx     # Individual blog post page
+│       │   └── blogPostsData.tsx # Blog post content/data
+│       └── Vibecoding/          # Vibecoding experiments feature
+│           ├── Vibecoding.tsx   # Experiments listing page
+│           ├── ExperimentFullscreen.tsx
+│           └── experiments.ts   # Experiments registry/config
 └── package.json
 ```
 
@@ -75,7 +79,8 @@ Each page component follows a consistent pattern:
 
 ### Styling Patterns
 
-- **CSS files** go in `src/styles/` - keep pages/ and components/ folders for .tsx only
+- **CSS files** go in `src/styles/`
+- **Feature folders** (like `BlogPosts/`, `Vibecoding/`) can contain related .tsx files and data files together
 - **Page backgrounds:** Set via CSS classes on `.page-wrapper` (e.g., `.norda .page-background`)
 - **Color palettes:** Each page has a default accent color defined in state:
   - Home: `#0f4c81` (blue)
@@ -113,7 +118,6 @@ The URL pathname (without `/`) is added as a class to `.page-wrapper` for page-s
 ```bash
 npm start       # Start development server (http://localhost:3000)
 npm run build   # Create production build
-npm test        # Run tests
 ```
 
 ## Adding New Pages
@@ -137,7 +141,7 @@ The `/vibecoding` section hosts containerized experiments (mini-apps, games, dem
    ├── style.css     # Styles
    └── script.js     # Logic
    ```
-3. **Register in `src/experiments.ts`:**
+3. **Register in `src/pages/Vibecoding/experiments.ts`:**
    ```typescript
    {
      id: 'my-game',
@@ -165,7 +169,7 @@ Each experiment in `public/experiments/` is self-contained. To deploy independen
 For experiments needing their own build process (React, bundlers, etc.):
 1. Create in `experiments/[name]/` with its own `package.json`
 2. Build output goes to `public/experiments/[name]/`
-3. Register the same way in `src/experiments.ts`
+3. Register the same way in `src/pages/Vibecoding/experiments.ts`
 
 ---
 
@@ -564,7 +568,9 @@ When working on this codebase, follow these guidelines:
 ### Code Organization
 
 - **CSS files** belong in `src/styles/`, not alongside components
-- **Only .tsx files** in `pages/` and `components/` folders
+- **Feature folders** (like `BlogPosts/`, `Vibecoding/`) can contain multiple related .tsx files and data files
+- **TypeScript interfaces** should be defined in the file where they're used (colocated), not in a separate types folder
+- **Avoid filename casing conflicts** - TypeScript treats filenames as case-insensitive, so don't create files that differ only in casing (e.g., `blogposts.tsx` vs `Blogposts.tsx`)
 - **Update CLAUDE.md** when adding new pages, routes, or significant features
 
 ### Before Finishing

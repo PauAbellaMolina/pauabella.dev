@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { Experiment } from '../types';
+import type { Experiment } from '../pages/Vibecoding/experiments';
 import '../styles/ExperimentModal.css';
 
 interface ExperimentModalProps {

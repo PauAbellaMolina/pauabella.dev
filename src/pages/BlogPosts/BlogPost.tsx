@@ -1,8 +1,8 @@
-import '../assets/css/fonts.css';
-import '../App.css';
-import '../styles/Blogposts.css';
+import '../../assets/css/fonts.css';
+import '../../App.css';
+import '../../styles/Blogposts.css';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
-import blogPosts from '../blogposts';
+import blogPosts from './blogPostsData';
 
 function BlogPost() {
   const { postId } = useParams<{ postId: string }>();

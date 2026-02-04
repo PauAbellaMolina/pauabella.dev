@@ -14,7 +14,11 @@ import BP9 from '../assets/images/bp9.webp';
 import BP10 from '../assets/images/bp10.webp';
 import BP11 from '../assets/images/bp11.webp';
 import BP12 from '../assets/images/bp12.webp';
-import type { ColorPalette } from '../types';
+
+interface ColorPalette {
+  text: string;
+  background: string;
+}
 
 function Bikepack() {
   const defaultColorPalette: ColorPalette = {
