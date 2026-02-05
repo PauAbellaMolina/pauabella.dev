@@ -88,14 +88,55 @@ button:active {
 
 #game-hud {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
   padding: 1rem 1.5rem 0.5rem;
   font-weight: 600;
   font-size: 0.9rem;
   color: #0f4c81;
-  opacity: 0.6;
   z-index: 2;
   pointer-events: none;
+}
+
+#location-label {
+  opacity: 0.6;
+}
+
+/* ── Inventory ── */
+
+#inventory {
+  display: flex;
+  gap: 0.75rem;
+  opacity: 0.7;
+}
+
+.inv-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.inv-icon {
+  display: inline-block;
+}
+
+.inv-stick {
+  width: 3px;
+  height: 14px;
+  background: #8b6f4e;
+  border-radius: 1px;
+  transform: rotate(-20deg);
+}
+
+.inv-stone {
+  width: 12px;
+  height: 9px;
+  background: #a5a59a;
+  border-radius: 50%;
+}
+
+.hud-spacer {
+  width: 70px; /* roughly matches inventory width */
 }
 
 #game-canvas {
@@ -273,6 +314,14 @@ button:active {
   #game-hud {
     font-size: 0.8rem;
     padding: 0.75rem 1rem 0.4rem;
+  }
+
+  #inventory {
+    gap: 0.5rem;
+  }
+
+  .hud-spacer {
+    width: 50px;
   }
 
   #game-controls {
