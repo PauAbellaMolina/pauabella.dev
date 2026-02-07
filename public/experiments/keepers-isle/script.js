@@ -654,6 +654,13 @@
       this.invSticksEl = document.getElementById('inv-sticks');
       this.invStonesEl = document.getElementById('inv-stones');
 
+      // Inventory panel
+      this.inventoryOpen = false;
+      this.invPanel = document.getElementById('inventory-panel');
+      this.invPanelSticks = document.getElementById('inv-panel-sticks');
+      this.invPanelStones = document.getElementById('inv-panel-stones');
+      this.invBtn = document.getElementById('inv-btn');
+
       // Time
       this.lastTime = 0;
       this.running = false;
@@ -674,7 +681,7 @@
 
     setupInput() {
       window.addEventListener('keydown', (e) => {
-        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','x','z'].includes(e.key)) {
+        if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','w','a','s','d','x','z','i'].includes(e.key)) {
           e.preventDefault();
         }
         if (!this.keys[e.key]) {
@@ -718,6 +725,16 @@
       };
       bindAction('btn-a', 'x');   // A button maps to X key
       bindAction('btn-b', 'z');   // B button maps to Z key
+
+      // Inventory button
+      if (this.invBtn) {
+        const openInv = (e) => {
+          e.preventDefault();
+          this.justPressed['i'] = true;
+        };
+        this.invBtn.addEventListener('touchstart', openInv, { passive: false });
+        this.invBtn.addEventListener('mousedown', openInv);
+      }
     }
 
     start() {
@@ -739,17 +756,34 @@
     // ── Update ──
 
     update(dt) {
-      // Handle A/B presses
+      // Handle button presses
       const pressedA = this.justPressed['x'] || this.justPressed['X'];
       const pressedB = this.justPressed['z'] || this.justPressed['Z'];
+      const pressedI = this.justPressed['i'] || this.justPressed['I'];
 
+      // Inventory panel takes priority
+      if (this.inventoryOpen) {
+        if (pressedI || pressedA || pressedB) {
+          this.hideInventoryPanel();
+        }
+        this.justPressed = {};
+        return;
+      }
+
+      // Dialogue
       if (this.dialogueOpen) {
-        // Any action button dismisses dialogue
         if (pressedA || pressedB) {
           this.hideDialogue();
         }
         this.justPressed = {};
-        return; // freeze movement while dialogue is open
+        return;
+      }
+
+      // Open inventory
+      if (pressedI) {
+        this.showInventoryPanel();
+        this.justPressed = {};
+        return;
       }
 
       if (pressedA) this.interact('a');
@@ -914,6 +948,19 @@
     hideDialogue() {
       this.dialogueOpen = false;
       this.dialogueBox.classList.add('hidden');
+    }
+
+    showInventoryPanel() {
+      this.inventoryOpen = true;
+      // Update panel counts
+      if (this.invPanelSticks) this.invPanelSticks.textContent = this.inventory.sticks;
+      if (this.invPanelStones) this.invPanelStones.textContent = this.inventory.stones;
+      this.invPanel.classList.remove('hidden');
+    }
+
+    hideInventoryPanel() {
+      this.inventoryOpen = false;
+      this.invPanel.classList.add('hidden');
     }
 
     // ── Render ──

@@ -14,7 +14,7 @@
     <h1>Keeper's Isle</h1>
     <p>Explore a tiny island as its lighthouse keeper. Walk the stone paths, wander through gardens, and watch the waves.</p>
     <div class="controls-hint">
-      <span class="key-hint">Arrows</span> / <span class="key-hint">WASD</span> move &middot; <span class="key-hint">X</span> examine &middot; <span class="key-hint">Z</span> act
+      <span class="key-hint">Arrows</span> / <span class="key-hint">WASD</span> move &middot; <span class="key-hint">X</span> examine &middot; <span class="key-hint">Z</span> act &middot; <span class="key-hint">I</span> inventory
     </div>
     <button id="start-btn">Begin</button>
   </div>
@@ -32,7 +32,7 @@
         </div>
       </div>
       <span id="location-label">The Shore</span>
-      <div class="hud-spacer"></div>
+      <button id="inv-btn" aria-label="Open inventory">INV</button>
     </div>
     <canvas id="game-canvas"></canvas>
 
@@ -53,6 +53,35 @@
     <div id="dialogue-box" class="hidden">
       <p id="dialogue-text"></p>
       <span id="dialogue-hint">A to close</span>
+    </div>
+
+    <div id="inventory-panel" class="hidden">
+      <div id="inventory-panel-inner">
+        <h2>Inventory</h2>
+        <div id="inv-items">
+          <div class="inv-panel-item">
+            <span class="inv-panel-icon inv-stick-lg"></span>
+            <div class="inv-panel-details">
+              <div class="inv-panel-header">
+                <span class="inv-panel-name">Sticks</span>
+                <span class="inv-panel-count" id="inv-panel-sticks">0</span>
+              </div>
+              <p class="inv-panel-desc">Sturdy twigs gathered from bushes. Useful for crafting.</p>
+            </div>
+          </div>
+          <div class="inv-panel-item">
+            <span class="inv-panel-icon inv-stone-lg"></span>
+            <div class="inv-panel-details">
+              <div class="inv-panel-header">
+                <span class="inv-panel-name">Stones</span>
+                <span class="inv-panel-count" id="inv-panel-stones">0</span>
+              </div>
+              <p class="inv-panel-desc">Smooth rocks from around the island. Good for building.</p>
+            </div>
+          </div>
+        </div>
+        <span id="inv-panel-hint">I to close</span>
+      </div>
     </div>
   </div>
 

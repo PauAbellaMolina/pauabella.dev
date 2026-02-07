@@ -135,8 +135,23 @@ button:active {
   border-radius: 50%;
 }
 
-.hud-spacer {
-  width: 70px; /* roughly matches inventory width */
+#inv-btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 4px;
+  opacity: 0.6;
+  pointer-events: auto;
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+#inv-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.05);
+}
+
+#inv-btn:active {
+  transform: scale(0.95);
 }
 
 #game-canvas {
@@ -289,6 +304,132 @@ button:active {
   100% { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
+/* ── Inventory Panel ── */
+
+#inventory-panel {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 61, 107, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 25;
+  animation: panelFadeIn 0.15s ease-out;
+}
+
+#inventory-panel.hidden {
+  display: none;
+}
+
+#inventory-panel-inner {
+  background: #fff0db;
+  color: #0f4c81;
+  border: 2px solid #0f4c81;
+  border-radius: 8px;
+  padding: 1.5rem;
+  width: calc(100% - 3rem);
+  max-width: 340px;
+  animation: panelSlideIn 0.15s ease-out;
+}
+
+#inventory-panel h2 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+#inv-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.inv-panel-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(15, 76, 129, 0.06);
+  border-radius: 6px;
+}
+
+.inv-panel-icon {
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.inv-stick-lg {
+  display: block;
+  width: 6px;
+  height: 28px;
+  background: #8b6f4e;
+  border-radius: 2px;
+  transform: rotate(-15deg);
+  margin: 0 6px;
+}
+
+.inv-stone-lg {
+  display: block;
+  width: 24px;
+  height: 18px;
+  background: #a5a59a;
+  border-radius: 50%;
+}
+
+.inv-panel-details {
+  flex: 1;
+}
+
+.inv-panel-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.inv-panel-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.inv-panel-count {
+  font-weight: 600;
+  font-size: 0.85rem;
+  opacity: 0.5;
+}
+
+.inv-panel-count::before {
+  content: "×";
+  margin-right: 0.15rem;
+}
+
+.inv-panel-desc {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  opacity: 0.6;
+  margin: 0.25rem 0 0 0;
+}
+
+#inv-panel-hint {
+  display: block;
+  text-align: center;
+  font-size: 0.75rem;
+  opacity: 0.4;
+  margin-top: 1rem;
+  font-weight: 600;
+}
+
+@keyframes panelFadeIn {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes panelSlideIn {
+  0%   { opacity: 0; transform: scale(0.95) translateY(8px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
 /* ── Animations ── */
 
 @keyframes fadeIn {
@@ -320,8 +461,21 @@ button:active {
     gap: 0.5rem;
   }
 
-  .hud-spacer {
-    width: 50px;
+  #inv-btn {
+    font-size: 0.65rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  #inventory-panel-inner {
+    padding: 1.25rem;
+  }
+
+  #inventory-panel h2 {
+    font-size: 1.1rem;
+  }
+
+  .inv-panel-item {
+    padding: 0.6rem;
   }
 
   #game-controls {
