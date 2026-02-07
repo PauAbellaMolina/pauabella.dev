@@ -294,41 +294,89 @@
   }
 
   function drawTree(ctx, sx, sy, col, row) {
-    // Trunk
     const tx = sx;
     const ty = sy - 4;
+    const seed = (col * 13 + row * 7) % 5;
+    const size = 14 + seed * 2;
+
+    // Ground shadow
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(tx + 4, sy + 8, 14, 6, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Trunk (tapered, with wood grain hint)
     ctx.fillStyle = C.trunkBrown;
-    ctx.fillRect(tx - 2, ty, 4, 14);
+    ctx.beginPath();
+    ctx.moveTo(tx - 3, ty + 14);
+    ctx.lineTo(tx - 2, ty);
+    ctx.lineTo(tx + 2, ty);
+    ctx.lineTo(tx + 3, ty + 14);
+    ctx.closePath();
+    ctx.fill();
 
-    // Canopy — layered circles for an organic look
-    const seed = (col * 13 + row * 7) % 3;
-    const size = 12 + seed * 2;
+    // Trunk highlight
+    ctx.fillStyle = C.wood;
+    ctx.beginPath();
+    ctx.moveTo(tx - 1, ty + 14);
+    ctx.lineTo(tx - 1, ty + 2);
+    ctx.lineTo(tx + 1, ty + 2);
+    ctx.lineTo(tx + 1, ty + 14);
+    ctx.closePath();
+    ctx.fill();
 
+    // Canopy — multiple overlapping ellipses for organic shape
+    const canopyY = ty - size + 2;
+
+    // Back layer (shadow)
     ctx.fillStyle = C.leafDark;
     ctx.beginPath();
-    ctx.arc(tx, ty - size + 4, size, 0, Math.PI * 2);
+    ctx.ellipse(tx - 4, canopyY + 4, size * 0.7, size * 0.6, 0, 0, Math.PI * 2);
+    ctx.ellipse(tx + 5, canopyY + 6, size * 0.65, size * 0.55, 0, 0, Math.PI * 2);
+    ctx.ellipse(tx, canopyY + 8, size * 0.8, size * 0.5, 0, 0, Math.PI * 2);
     ctx.fill();
 
+    // Main layer
     ctx.fillStyle = C.leafGreen;
     ctx.beginPath();
-    ctx.arc(tx + 2, ty - size + 1, size - 3, 0, Math.PI * 2);
+    ctx.ellipse(tx - 3, canopyY, size * 0.7, size * 0.65, 0, 0, Math.PI * 2);
+    ctx.ellipse(tx + 4, canopyY + 2, size * 0.6, size * 0.55, 0, 0, Math.PI * 2);
+    ctx.ellipse(tx, canopyY + 4, size * 0.75, size * 0.5, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Highlight
+    // Top cluster
+    ctx.beginPath();
+    ctx.ellipse(tx, canopyY - 4, size * 0.55, size * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Highlights
     ctx.fillStyle = C.grassLight;
     ctx.beginPath();
-    ctx.arc(tx + 3, ty - size - 2, size * 0.4, 0, Math.PI * 2);
+    ctx.ellipse(tx - 2, canopyY - 6, size * 0.3, size * 0.25, 0, 0, Math.PI * 2);
+    ctx.ellipse(tx + 4, canopyY - 2, size * 0.2, size * 0.18, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
   function drawRock(ctx, sx, sy, col, row) {
     const seed = (col * 7 + row * 3) % 5;
-    const rw = 10 + seed;
-    const rh = 6 + seed * 0.5;
+    const rw = 11 + seed;
+    const rh = 7 + seed * 0.5;
     const rx = sx;
-    const ry = sy + 6;
+    const ry = sy + 5;
 
-    // Shadow
+    // Ground shadow
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(rx + 3, ry + 5, rw + 2, rh - 1, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Rock shadow layer
     ctx.fillStyle = C.rockGray;
     ctx.beginPath();
     ctx.ellipse(rx, ry + 2, rw + 1, rh, 0, 0, Math.PI * 2);
@@ -340,78 +388,181 @@
     ctx.ellipse(rx, ry, rw, rh, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Highlight
-    ctx.fillStyle = '#c0c0b8';
+    // Mid highlight
+    ctx.fillStyle = '#b8b8ae';
     ctx.beginPath();
-    ctx.ellipse(rx - 2, ry - 2, rw * 0.5, rh * 0.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(rx - 1, ry - 1, rw * 0.7, rh * 0.6, -0.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Top highlight
+    ctx.fillStyle = '#d0d0c8';
+    ctx.beginPath();
+    ctx.ellipse(rx - 2, ry - 2, rw * 0.4, rh * 0.35, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
   function drawBush(ctx, sx, sy) {
     const bx = sx;
-    const by = sy + 4;
+    const by = sy + 3;
 
+    // Ground shadow
+    ctx.save();
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(bx + 2, by + 6, 11, 4, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Back leaves
     ctx.fillStyle = C.leafDark;
     ctx.beginPath();
-    ctx.ellipse(bx, by, 10, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(bx - 4, by + 1, 7, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(bx + 4, by + 2, 6, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(bx, by + 2, 9, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
+    // Front leaves
     ctx.fillStyle = C.leafGreen;
     ctx.beginPath();
-    ctx.ellipse(bx + 1, by - 2, 8, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(bx - 3, by - 1, 6, 4.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(bx + 3, by, 5.5, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(bx, by - 1, 7, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Highlight
+    ctx.fillStyle = C.grassLight;
+    ctx.beginPath();
+    ctx.ellipse(bx - 1, by - 3, 3, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Small berries/sticks hint
+    ctx.fillStyle = C.wood;
+    ctx.beginPath();
+    ctx.arc(bx + 4, by - 1, 1.2, 0, Math.PI * 2);
+    ctx.arc(bx - 3, by + 1, 1, 0, Math.PI * 2);
     ctx.fill();
   }
 
   function drawTallGrass(ctx, sx, sy, col, row) {
     const seed = col * 11 + row * 5;
-    ctx.strokeStyle = C.darkGrass;
-    ctx.lineWidth = 1.5;
-    for (let i = 0; i < 5; i++) {
-      const ox = (seed + i * 13) % 16 - 8;
-      const lean = ((seed + i * 7) % 6 - 3) * 0.8;
-      ctx.beginPath();
-      ctx.moveTo(sx + ox, sy + 10);
-      ctx.quadraticCurveTo(sx + ox + lean, sy - 2, sx + ox + lean * 1.5, sy - 8);
-      ctx.stroke();
+
+    // Draw blades in layers for depth
+    const colors = [C.darkGrass, C.leafDark, C.leafGreen];
+
+    for (let layer = 0; layer < 3; layer++) {
+      ctx.strokeStyle = colors[layer];
+      ctx.lineWidth = 2 - layer * 0.4;
+
+      for (let i = 0; i < 4; i++) {
+        const idx = layer * 4 + i;
+        const ox = ((seed + idx * 17) % 20 - 10) * 0.8;
+        const lean = ((seed + idx * 11) % 8 - 4) * 0.6;
+        const height = 10 + (seed + idx) % 6;
+
+        ctx.beginPath();
+        ctx.moveTo(sx + ox, sy + 10 - layer * 2);
+        ctx.quadraticCurveTo(
+          sx + ox + lean * 1.2,
+          sy + 2 - layer * 2,
+          sx + ox + lean * 1.8,
+          sy - height - layer * 2
+        );
+        ctx.stroke();
+      }
     }
   }
 
   function drawLighthouse(ctx, sx, sy) {
-    // Base
     const bx = sx;
     const by = sy - 8;
 
-    // Tower
+    // Ground shadow
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(bx + 8, sy + 6, 18, 8, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Tower shadow side
+    ctx.fillStyle = '#e0d8c8';
+    ctx.beginPath();
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx + 1, by - 44);
+    ctx.lineTo(bx + 6, by - 44);
+    ctx.lineTo(bx + 9, by);
+    ctx.closePath();
+    ctx.fill();
+
+    // Tower main
     ctx.fillStyle = C.lighthouse;
     ctx.beginPath();
     ctx.moveTo(bx - 8, by);
     ctx.lineTo(bx - 5, by - 44);
-    ctx.lineTo(bx + 5, by - 44);
-    ctx.lineTo(bx + 8, by);
+    ctx.lineTo(bx + 1, by - 44);
+    ctx.lineTo(bx, by);
     ctx.closePath();
     ctx.fill();
 
-    // Stripe
+    // Stripes
     ctx.fillStyle = C.cottageRoof;
-    ctx.fillRect(bx - 7, by - 16, 14, 6);
-    ctx.fillRect(bx - 6, by - 32, 12, 6);
+    ctx.beginPath();
+    ctx.moveTo(bx - 7.5, by - 14);
+    ctx.lineTo(bx - 6.5, by - 20);
+    ctx.lineTo(bx + 6.5, by - 20);
+    ctx.lineTo(bx + 7.5, by - 14);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(bx - 6, by - 30);
+    ctx.lineTo(bx - 5.5, by - 36);
+    ctx.lineTo(bx + 5.5, by - 36);
+    ctx.lineTo(bx + 6, by - 30);
+    ctx.closePath();
+    ctx.fill();
 
     // Lamp room
     ctx.fillStyle = C.lighthouseTop;
-    ctx.fillRect(bx - 6, by - 50, 12, 8);
+    ctx.fillRect(bx - 6, by - 52, 12, 10);
 
-    // Lamp
-    ctx.fillStyle = '#e8c44a';
+    // Windows on lamp room
+    ctx.fillStyle = '#d4e8f0';
+    ctx.fillRect(bx - 4, by - 50, 3, 6);
+    ctx.fillRect(bx + 1, by - 50, 3, 6);
+
+    // Lamp glow
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#ffe066';
     ctx.beginPath();
-    ctx.arc(bx, by - 46, 3, 0, Math.PI * 2);
+    ctx.arc(bx, by - 47, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Lamp center
+    ctx.fillStyle = '#ffe066';
+    ctx.beginPath();
+    ctx.arc(bx, by - 47, 3, 0, Math.PI * 2);
     ctx.fill();
 
     // Roof
     ctx.fillStyle = C.lighthouseTop;
     ctx.beginPath();
-    ctx.moveTo(bx - 7, by - 50);
-    ctx.lineTo(bx, by - 58);
-    ctx.lineTo(bx + 7, by - 50);
+    ctx.moveTo(bx - 8, by - 52);
+    ctx.lineTo(bx, by - 62);
+    ctx.lineTo(bx + 8, by - 52);
+    ctx.closePath();
+    ctx.fill();
+
+    // Roof highlight
+    ctx.fillStyle = '#1a5a90';
+    ctx.beginPath();
+    ctx.moveTo(bx - 6, by - 52);
+    ctx.lineTo(bx - 1, by - 60);
+    ctx.lineTo(bx - 1, by - 52);
     ctx.closePath();
     ctx.fill();
   }
@@ -420,68 +571,175 @@
     const bx = sx;
     const by = sy - 4;
 
-    // Wall (isometric-ish front face)
-    ctx.fillStyle = C.cottage;
-    ctx.fillRect(bx - 14, by - 18, 28, 22);
-
-    // Roof
-    ctx.fillStyle = C.cottageRoof;
+    // Ground shadow
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.moveTo(bx - 17, by - 18);
-    ctx.lineTo(bx, by - 30);
-    ctx.lineTo(bx + 17, by - 18);
+    ctx.ellipse(bx + 6, sy + 6, 20, 8, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Wall shadow side
+    ctx.fillStyle = '#e8e0d0';
+    ctx.fillRect(bx + 2, by - 18, 13, 22);
+
+    // Wall main
+    ctx.fillStyle = C.cottage;
+    ctx.fillRect(bx - 14, by - 18, 18, 22);
+
+    // Wall edge line
+    ctx.strokeStyle = '#d8d0c0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(bx + 2, by - 18);
+    ctx.lineTo(bx + 2, by + 4);
+    ctx.stroke();
+
+    // Roof shadow
+    ctx.fillStyle = '#a86048';
+    ctx.beginPath();
+    ctx.moveTo(bx, by - 30);
+    ctx.lineTo(bx + 18, by - 18);
+    ctx.lineTo(bx + 2, by - 18);
     ctx.closePath();
     ctx.fill();
 
+    // Roof main
+    ctx.fillStyle = C.cottageRoof;
+    ctx.beginPath();
+    ctx.moveTo(bx - 17, by - 18);
+    ctx.lineTo(bx, by - 32);
+    ctx.lineTo(bx + 2, by - 18);
+    ctx.closePath();
+    ctx.fill();
+
+    // Roof highlight
+    ctx.fillStyle = '#d08868';
+    ctx.beginPath();
+    ctx.moveTo(bx - 14, by - 18);
+    ctx.lineTo(bx - 2, by - 28);
+    ctx.lineTo(bx - 2, by - 18);
+    ctx.closePath();
+    ctx.fill();
+
+    // Chimney
+    ctx.fillStyle = C.rockGray;
+    ctx.fillRect(bx + 6, by - 34, 5, 10);
+    ctx.fillStyle = C.rockLight;
+    ctx.fillRect(bx + 5, by - 35, 7, 2);
+
+    // Smoke puff
+    ctx.save();
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(bx + 8, by - 38, 2, 0, Math.PI * 2);
+    ctx.arc(bx + 10, by - 41, 2.5, 0, Math.PI * 2);
+    ctx.arc(bx + 8, by - 44, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
     // Door
     ctx.fillStyle = C.woodDark;
-    ctx.fillRect(bx - 3, by - 4, 6, 8);
+    ctx.fillRect(bx - 4, by - 5, 7, 9);
+    ctx.fillStyle = C.wood;
+    ctx.fillRect(bx - 3, by - 4, 5, 7);
 
-    // Window
+    // Door handle
+    ctx.fillStyle = '#888';
+    ctx.beginPath();
+    ctx.arc(bx + 1, by - 1, 0.8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Windows
     ctx.fillStyle = '#d4e8f0';
-    ctx.fillRect(bx - 11, by - 14, 6, 5);
-    ctx.fillRect(bx + 5, by - 14, 6, 5);
+    ctx.fillRect(bx - 12, by - 14, 6, 5);
+
+    // Window frame
+    ctx.strokeStyle = C.woodDark;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(bx - 12, by - 14, 6, 5);
 
     // Window cross
-    ctx.strokeStyle = C.cottage;
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = C.woodDark;
+    ctx.lineWidth = 0.8;
     ctx.beginPath();
-    ctx.moveTo(bx - 8, by - 14);
-    ctx.lineTo(bx - 8, by - 9);
-    ctx.moveTo(bx - 11, by - 11.5);
-    ctx.lineTo(bx - 5, by - 11.5);
-    ctx.moveTo(bx + 8, by - 14);
-    ctx.lineTo(bx + 8, by - 9);
-    ctx.moveTo(bx + 5, by - 11.5);
-    ctx.lineTo(bx + 11, by - 11.5);
+    ctx.moveTo(bx - 9, by - 14);
+    ctx.lineTo(bx - 9, by - 9);
+    ctx.moveTo(bx - 12, by - 11.5);
+    ctx.lineTo(bx - 6, by - 11.5);
     ctx.stroke();
+
+    // Window glow
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = '#ffe066';
+    ctx.fillRect(bx - 11, by - 13, 4, 3);
+    ctx.restore();
   }
 
   function drawPierPost(ctx, sx, sy) {
+    // Shadow
+    ctx.save();
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(sx + 2, sy + 7, 6, 3, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Post body
     ctx.fillStyle = C.woodDark;
-    ctx.fillRect(sx - 2, sy - 6, 4, 12);
+    ctx.fillRect(sx - 2.5, sy - 6, 5, 13);
+    // Highlight
     ctx.fillStyle = C.wood;
-    ctx.fillRect(sx - 4, sy - 8, 8, 3);
+    ctx.fillRect(sx - 1.5, sy - 6, 2, 12);
+
+    // Cap
+    ctx.fillStyle = C.woodDark;
+    ctx.fillRect(sx - 5, sy - 9, 10, 4);
+    ctx.fillStyle = C.wood;
+    ctx.fillRect(sx - 4, sy - 8, 8, 2);
   }
 
   function drawSignpost(ctx, sx, sy) {
+    // Shadow
+    ctx.save();
+    ctx.globalAlpha = 0.1;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(sx + 3, sy + 10, 8, 3, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
     // Pole
+    ctx.fillStyle = C.woodDark;
+    ctx.fillRect(sx - 2, sy - 4, 4, 17);
     ctx.fillStyle = C.wood;
-    ctx.fillRect(sx - 1.5, sy - 4, 3, 16);
+    ctx.fillRect(sx - 1, sy - 4, 2, 16);
+
+    // Sign board shadow
+    ctx.fillStyle = '#5a4528';
+    ctx.fillRect(sx - 10, sy - 15, 21, 13);
 
     // Sign board
     ctx.fillStyle = C.woodDark;
-    ctx.fillRect(sx - 10, sy - 16, 20, 12);
+    ctx.fillRect(sx - 11, sy - 17, 21, 13);
 
     // Sign face
     ctx.fillStyle = C.sand;
-    ctx.fillRect(sx - 8, sy - 14, 16, 8);
+    ctx.fillRect(sx - 9, sy - 15, 17, 9);
 
-    // Text lines (tiny decorative marks)
-    ctx.fillStyle = C.woodDark;
-    ctx.globalAlpha = 0.4;
-    ctx.fillRect(sx - 6, sy - 12, 12, 1.5);
-    ctx.fillRect(sx - 6, sy - 9, 8, 1.5);
+    // Sign face highlight
+    ctx.fillStyle = '#f0e5d0';
+    ctx.fillRect(sx - 8, sy - 14, 15, 3);
+
+    // Text lines (decorative marks)
+    ctx.fillStyle = C.text;
+    ctx.globalAlpha = 0.35;
+    ctx.fillRect(sx - 7, sy - 13, 13, 1.5);
+    ctx.fillRect(sx - 7, sy - 10, 9, 1.5);
     ctx.globalAlpha = 1;
   }
 
@@ -489,39 +747,100 @@
     const wx = sx;
     const wy = sy + 2;
 
-    // Base stone ring (ellipse)
+    // Ground shadow
+    ctx.save();
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(wx + 4, wy + 8, 16, 7, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Base stone ring shadow
+    ctx.fillStyle = '#7a7a72';
+    ctx.beginPath();
+    ctx.ellipse(wx, wy + 4, 13, 8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Base stone ring
     ctx.fillStyle = C.rockGray;
     ctx.beginPath();
-    ctx.ellipse(wx, wy + 2, 12, 7, 0, 0, Math.PI * 2);
+    ctx.ellipse(wx, wy + 1, 12, 7, 0, 0, Math.PI * 2);
     ctx.fill();
 
     // Inner ring
     ctx.fillStyle = C.rockLight;
     ctx.beginPath();
-    ctx.ellipse(wx, wy, 11, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(wx, wy - 1, 11, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Stone ring highlight
+    ctx.fillStyle = '#d0d0c8';
+    ctx.beginPath();
+    ctx.ellipse(wx - 4, wy - 2, 5, 3, -0.2, 0, Math.PI * 2);
     ctx.fill();
 
     // Dark water inside
     ctx.fillStyle = C.deepWater;
     ctx.beginPath();
-    ctx.ellipse(wx, wy, 7, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(wx, wy - 1, 7, 4, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Support posts
+    // Water shimmer
+    ctx.save();
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = C.shallowWater;
+    ctx.beginPath();
+    ctx.ellipse(wx - 2, wy - 2, 3, 1.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Support posts with highlight
+    ctx.fillStyle = C.woodDark;
+    ctx.fillRect(wx - 10, wy - 18, 3, 19);
+    ctx.fillRect(wx + 7, wy - 18, 3, 19);
     ctx.fillStyle = C.wood;
-    ctx.fillRect(wx - 10, wy - 18, 3, 18);
-    ctx.fillRect(wx + 7, wy - 18, 3, 18);
+    ctx.fillRect(wx - 9, wy - 18, 1.5, 18);
+    ctx.fillRect(wx + 8, wy - 18, 1.5, 18);
+
+    // Rope and bucket hint
+    ctx.strokeStyle = C.sand;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(wx, wy - 18);
+    ctx.lineTo(wx, wy - 8);
+    ctx.stroke();
 
     // Roof beam
     ctx.fillStyle = C.woodDark;
     ctx.fillRect(wx - 11, wy - 20, 22, 3);
+    ctx.fillStyle = C.wood;
+    ctx.fillRect(wx - 10, wy - 19, 20, 1);
 
-    // Small roof
+    // Roof shadow
+    ctx.fillStyle = '#a86048';
+    ctx.beginPath();
+    ctx.moveTo(wx, wy - 27);
+    ctx.lineTo(wx + 14, wy - 19);
+    ctx.lineTo(wx, wy - 19);
+    ctx.closePath();
+    ctx.fill();
+
+    // Roof main
     ctx.fillStyle = C.cottageRoof;
     ctx.beginPath();
-    ctx.moveTo(wx - 13, wy - 19);
-    ctx.lineTo(wx, wy - 26);
-    ctx.lineTo(wx + 13, wy - 19);
+    ctx.moveTo(wx - 14, wy - 19);
+    ctx.lineTo(wx, wy - 28);
+    ctx.lineTo(wx, wy - 19);
+    ctx.closePath();
+    ctx.fill();
+
+    // Roof highlight
+    ctx.fillStyle = '#d08868';
+    ctx.beginPath();
+    ctx.moveTo(wx - 12, wy - 19);
+    ctx.lineTo(wx - 2, wy - 26);
+    ctx.lineTo(wx - 2, wy - 19);
     ctx.closePath();
     ctx.fill();
   }
@@ -567,50 +886,104 @@
 
   function drawPlayer(ctx, sx, sy, direction) {
     const px = sx;
-    const py = sy - 2; // stand slightly above tile center
+    const py = sy - 4; // stand slightly above tile center
 
-    // Shadow
+    // Soft shadow
     ctx.save();
-    ctx.globalAlpha = 0.15;
+    ctx.globalAlpha = 0.18;
     ctx.fillStyle = '#000';
     ctx.beginPath();
-    ctx.ellipse(px, py + 10, 8, 4, 0, 0, Math.PI * 2);
+    ctx.ellipse(px, py + 14, 10, 5, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    // Body
+    // Legs (rounded)
     ctx.fillStyle = C.playerBody;
-    ctx.fillRect(px - 5, py - 6, 10, 12);
+    ctx.beginPath();
+    ctx.ellipse(px - 2.5, py + 9, 2.5, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(px + 2.5, py + 9, 2.5, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Head
+    // Shoes (rounded)
+    ctx.fillStyle = C.trunkBrown;
+    ctx.beginPath();
+    ctx.ellipse(px - 3, py + 13, 3.5, 2, 0, 0, Math.PI * 2);
+    ctx.ellipse(px + 3, py + 13, 3.5, 2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body (rounded rectangle shape using arc)
+    ctx.fillStyle = C.playerBody;
+    ctx.beginPath();
+    ctx.moveTo(px - 5, py + 2);
+    ctx.lineTo(px - 5, py - 4);
+    ctx.quadraticCurveTo(px - 5, py - 7, px - 2, py - 7);
+    ctx.lineTo(px + 2, py - 7);
+    ctx.quadraticCurveTo(px + 5, py - 7, px + 5, py - 4);
+    ctx.lineTo(px + 5, py + 2);
+    ctx.quadraticCurveTo(px + 5, py + 5, px + 2, py + 5);
+    ctx.lineTo(px - 2, py + 5);
+    ctx.quadraticCurveTo(px - 5, py + 5, px - 5, py + 2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Collar accent
+    ctx.fillStyle = C.cottage;
+    ctx.beginPath();
+    ctx.ellipse(px, py - 6, 4, 1.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Head (slightly larger, softer)
     ctx.fillStyle = C.playerSkin;
     ctx.beginPath();
-    ctx.arc(px, py - 11, 6, 0, Math.PI * 2);
+    ctx.arc(px, py - 12, 7, 0, Math.PI * 2);
     ctx.fill();
 
-    // Hair
+    // Hair (fuller, with slight texture)
     ctx.fillStyle = C.playerHair;
     ctx.beginPath();
-    ctx.arc(px, py - 13, 6, Math.PI, Math.PI * 2);
+    ctx.arc(px, py - 14, 7, Math.PI * 0.9, Math.PI * 2.1);
     ctx.fill();
-
-    // Eyes (direction-dependent)
-    ctx.fillStyle = '#fff';
-    const eyeOx = direction === 'left' ? -2 : direction === 'right' ? 2 : 0;
+    // Hair tuft
     ctx.beginPath();
-    ctx.arc(px - 2 + eyeOx, py - 11, 1.2, 0, Math.PI * 2);
-    ctx.arc(px + 2 + eyeOx, py - 11, 1.2, 0, Math.PI * 2);
+    ctx.ellipse(px + 3, py - 18, 3, 4, Math.PI * 0.15, 0, Math.PI * 2);
     ctx.fill();
 
-    // Legs
-    ctx.fillStyle = C.playerBody;
-    ctx.fillRect(px - 4, py + 6, 3, 5);
-    ctx.fillRect(px + 1, py + 6, 3, 5);
+    // Ear (visible on side views)
+    if (direction === 'left' || direction === 'right') {
+      ctx.fillStyle = C.playerSkin;
+      const earX = direction === 'left' ? px - 6 : px + 6;
+      ctx.beginPath();
+      ctx.ellipse(earX, py - 11, 1.5, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-    // Shoes
-    ctx.fillStyle = C.trunkBrown;
-    ctx.fillRect(px - 5, py + 10, 4, 2);
-    ctx.fillRect(px + 1, py + 10, 4, 2);
+    // Eyes (direction-dependent, with pupils)
+    const eyeOx = direction === 'left' ? -2 : direction === 'right' ? 2 : 0;
+    const eyeOy = direction === 'up' ? -1 : 0;
+
+    // Eye whites
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.ellipse(px - 2.5 + eyeOx * 0.5, py - 11 + eyeOy, 2, 2.2, 0, 0, Math.PI * 2);
+    ctx.ellipse(px + 2.5 + eyeOx * 0.5, py - 11 + eyeOy, 2, 2.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Pupils
+    ctx.fillStyle = C.playerHair;
+    ctx.beginPath();
+    ctx.arc(px - 2.5 + eyeOx, py - 10.5 + eyeOy, 1, 0, Math.PI * 2);
+    ctx.arc(px + 2.5 + eyeOx, py - 10.5 + eyeOy, 1, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Subtle blush
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = C.flowers1;
+    ctx.beginPath();
+    ctx.ellipse(px - 4, py - 9, 2, 1.2, 0, 0, Math.PI * 2);
+    ctx.ellipse(px + 4, py - 9, 2, 1.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   }
 
   // ── Game Class ─────────────────────────────
@@ -653,6 +1026,8 @@
       this.harvestedObjects = new Set(); // tracks "col,row" strings
       this.invSticksEl = document.getElementById('inv-sticks');
       this.invStonesEl = document.getElementById('inv-stones');
+      this.invSticksItem = this.invSticksEl ? this.invSticksEl.closest('.inv-item') : null;
+      this.invStonesItem = this.invStonesEl ? this.invStonesEl.closest('.inv-item') : null;
 
       // Inventory panel
       this.inventoryOpen = false;
@@ -660,6 +1035,11 @@
       this.invPanelSticks = document.getElementById('inv-panel-sticks');
       this.invPanelStones = document.getElementById('inv-panel-stones');
       this.invBtn = document.getElementById('inv-btn');
+
+      // Collection popup
+      this.collectPopup = document.getElementById('collect-popup');
+      this.collectText = document.getElementById('collect-text');
+      this.collectTimeout = null;
 
       // Time
       this.lastTime = 0;
@@ -909,14 +1289,16 @@
           this.inventory.sticks++;
           this.harvestedObjects.add(key);
           this.updateInventory();
-          this.showDialogue('You found a stick!');
+          this.showCollectPopup('+1 Stick');
+          this.pulseInvItem(this.invSticksItem);
           return;
         }
         if (obj === O.ROCK && !harvested) {
           this.inventory.stones++;
           this.harvestedObjects.add(key);
           this.updateInventory();
-          this.showDialogue('You picked up a stone.');
+          this.showCollectPopup('+1 Stone');
+          this.pulseInvItem(this.invStonesItem);
           return;
         }
         // Show "already collected" message for harvested objects
@@ -937,6 +1319,30 @@
     updateInventory() {
       if (this.invSticksEl) this.invSticksEl.textContent = this.inventory.sticks;
       if (this.invStonesEl) this.invStonesEl.textContent = this.inventory.stones;
+    }
+
+    showCollectPopup(text) {
+      if (this.collectTimeout) {
+        clearTimeout(this.collectTimeout);
+      }
+      this.collectText.textContent = text;
+      this.collectPopup.classList.remove('hidden');
+      // Force reflow to restart animation
+      this.collectPopup.style.animation = 'none';
+      this.collectPopup.offsetHeight;
+      this.collectPopup.style.animation = '';
+
+      this.collectTimeout = setTimeout(() => {
+        this.collectPopup.classList.add('hidden');
+      }, 800);
+    }
+
+    pulseInvItem(el) {
+      if (!el) return;
+      el.classList.remove('pulse');
+      el.offsetHeight; // Force reflow
+      el.classList.add('pulse');
+      setTimeout(() => el.classList.remove('pulse'), 300);
     }
 
     showDialogue(text) {
