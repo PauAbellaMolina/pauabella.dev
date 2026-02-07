@@ -11,6 +11,33 @@
 </head>
 <body>
   <div id="start-screen" class="screen">
+    <div class="start-illustration" aria-hidden="true">
+      <svg viewBox="0 0 120 60" width="120" height="60">
+        <!-- Water -->
+        <ellipse cx="60" cy="50" rx="55" ry="10" fill="#1a6aaa" opacity="0.3"/>
+        <!-- Island -->
+        <ellipse cx="60" cy="42" rx="40" ry="12" fill="#7a9e6e"/>
+        <ellipse cx="60" cy="40" rx="38" ry="10" fill="#8fb180"/>
+        <!-- Beach -->
+        <ellipse cx="60" cy="44" rx="30" ry="6" fill="#e8d5b5"/>
+        <!-- Path -->
+        <ellipse cx="55" cy="40" rx="8" ry="3" fill="#bfb1a0"/>
+        <!-- Lighthouse -->
+        <path d="M80 40 L78 20 L82 20 L80 40" fill="#fff0db"/>
+        <rect x="77" y="28" width="6" height="3" fill="#c4785a"/>
+        <rect x="77" y="18" width="6" height="4" fill="#0f4c81"/>
+        <circle cx="80" cy="20" r="1.5" fill="#ffe066"/>
+        <path d="M76 18 L80 12 L84 18" fill="#0f4c81"/>
+        <!-- Trees -->
+        <circle cx="45" cy="32" r="8" fill="#3b6630"/>
+        <circle cx="47" cy="30" r="6" fill="#4a7a3e"/>
+        <circle cx="68" cy="34" r="6" fill="#3b6630"/>
+        <circle cx="70" cy="32" r="5" fill="#4a7a3e"/>
+        <!-- Cottage -->
+        <rect x="50" y="36" width="10" height="8" fill="#fff0db"/>
+        <path d="M48 36 L55 30 L62 36" fill="#c4785a"/>
+      </svg>
+    </div>
     <h1>Keeper's Isle</h1>
     <p>Explore a tiny island as its lighthouse keeper. Walk the stone paths, wander through gardens, and watch the waves.</p>
     <div class="controls-hint">
@@ -53,6 +80,10 @@
     <div id="dialogue-box" class="hidden">
       <p id="dialogue-text"></p>
       <span id="dialogue-hint">A to close</span>
+    </div>
+
+    <div id="collect-popup" class="hidden">
+      <span id="collect-text">+1 Stick</span>
     </div>
 
     <div id="inventory-panel" class="hidden">

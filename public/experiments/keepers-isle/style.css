@@ -24,6 +24,21 @@ body {
   animation: fadeIn 0.6s ease-out;
 }
 
+.start-illustration {
+  margin-bottom: 1.25rem;
+  animation: float 4s ease-in-out infinite;
+}
+
+.start-illustration svg {
+  display: block;
+  margin: 0 auto;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
 .screen h1 {
   font-size: 2.5rem;
   font-weight: 800;
@@ -114,6 +129,17 @@ button:active {
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  transition: transform 0.15s ease;
+}
+
+.inv-item.pulse {
+  animation: invPulse 0.3s ease-out;
+}
+
+@keyframes invPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
 .inv-icon {
@@ -302,6 +328,51 @@ button:active {
 @keyframes dialogueIn {
   0%   { opacity: 0; transform: translateX(-50%) translateY(6px); }
   100% { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Collection Popup ── */
+
+#collect-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(15, 76, 129, 0.9);
+  color: #fff0db;
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  z-index: 30;
+  pointer-events: none;
+  animation: collectPop 0.8s ease-out forwards;
+}
+
+#collect-popup.hidden {
+  display: none;
+}
+
+@keyframes collectPop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.8);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+  35% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.9);
+  }
 }
 
 /* ── Inventory Panel ── */
