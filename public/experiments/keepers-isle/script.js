@@ -159,6 +159,18 @@
     };
   }
 
+  // Convert screen coords to tile coords (inverse of tileToScreen)
+  function screenToTile(sx, sy) {
+    // Inverse of the isometric projection:
+    // sx = (col - row) * (TILE_W / 2)
+    // sy = (col + row) * (TILE_H / 2)
+    // Solving: col = (sx / (TILE_W/2) + sy / (TILE_H/2)) / 2
+    //          row = (sy / (TILE_H/2) - sx / (TILE_W/2)) / 2
+    const col = (sx / (TILE_W / 2) + sy / (TILE_H / 2)) / 2;
+    const row = (sy / (TILE_H / 2) - sx / (TILE_W / 2)) / 2;
+    return { col: Math.round(col), row: Math.round(row) };
+  }
+
   // Draw an isometric diamond (flat tile)
   function drawDiamond(ctx, sx, sy, color, strokeColor) {
     ctx.beginPath();
@@ -1041,6 +1053,10 @@
       this.collectText = document.getElementById('collect-text');
       this.collectTimeout = null;
 
+      // Tap-to-move pathfinding
+      this.pathTarget = null; // { col, row } destination
+      this.pathQueue = [];    // Array of { col, row } steps
+
       // Time
       this.lastTime = 0;
       this.running = false;
@@ -1115,6 +1131,40 @@
         this.invBtn.addEventListener('touchstart', openInv, { passive: false });
         this.invBtn.addEventListener('mousedown', openInv);
       }
+
+      // Tap-to-move on canvas
+      const handleTap = (clientX, clientY) => {
+        if (this.dialogueOpen || this.inventoryOpen) return;
+
+        const rect = this.canvas.getBoundingClientRect();
+        const tapX = clientX - rect.left;
+        const tapY = clientY - rect.top;
+
+        // Convert screen tap to world coordinates (accounting for camera)
+        const worldX = tapX - this.screenW / 2 + this.camera.x;
+        const worldY = tapY - this.screenH / 2 + this.camera.y - 40; // -40 matches render offset
+
+        // Convert world coords to tile
+        const { col, row } = screenToTile(worldX, worldY);
+
+        // Check if destination is valid and walkable
+        if (col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) {
+          if (this.canWalk(col, row)) {
+            this.setPathTarget(col, row);
+          }
+        }
+      };
+
+      this.canvas.addEventListener('click', (e) => {
+        handleTap(e.clientX, e.clientY);
+      });
+
+      this.canvas.addEventListener('touchend', (e) => {
+        if (e.changedTouches.length > 0) {
+          const touch = e.changedTouches[0];
+          handleTap(touch.clientX, touch.clientY);
+        }
+      }, { passive: true });
     }
 
     start() {
@@ -1181,12 +1231,20 @@
           p.moving = false;
           p.moveProgress = 0;
           this.updateHud();
+
+          // Check if reached path destination
+          if (this.pathTarget && p.col === this.pathTarget.col && p.row === this.pathTarget.row) {
+            this.clearPath();
+          }
         }
       }
 
       if (!p.moving) {
         const dir = this.getInputDirection();
         if (dir) {
+          // Manual input clears any active path
+          this.clearPath();
+
           const nc = p.col + dir.dc;
           const nr = p.row + dir.dr;
           if (this.canWalk(nc, nr)) {
@@ -1197,6 +1255,30 @@
             p.moving = true;
             p.moveProgress = 0;
             p.direction = dir.name;
+          }
+        } else if (this.pathQueue.length > 0) {
+          // Follow the path
+          const next = this.getNextPathStep();
+          if (next && this.canWalk(next.col, next.row)) {
+            // Calculate direction for animation
+            const dc = next.col - p.col;
+            const dr = next.row - p.row;
+            let direction = 'down';
+            if (dr < 0) direction = 'up';
+            else if (dr > 0) direction = 'down';
+            else if (dc < 0) direction = 'left';
+            else if (dc > 0) direction = 'right';
+
+            p.prevCol = p.col;
+            p.prevRow = p.row;
+            p.targetCol = next.col;
+            p.targetRow = next.row;
+            p.moving = true;
+            p.moveProgress = 0;
+            p.direction = direction;
+          } else {
+            // Path blocked, clear it
+            this.clearPath();
           }
         }
       }
@@ -1230,6 +1312,110 @@
       const obj = OBJECTS[row][col];
       if (obj === O.TREE || obj === O.ROCK || obj === O.BUSH || obj === O.COTTAGE || obj === O.LIGHTHOUSE || obj === O.PIER_POST || obj === O.SIGNPOST || obj === O.WELL) return false;
       return true;
+    }
+
+    // ── Pathfinding (A*) ──
+
+    setPathTarget(col, row) {
+      const startCol = this.player.moving ? this.player.targetCol : this.player.col;
+      const startRow = this.player.moving ? this.player.targetRow : this.player.row;
+
+      // Already there
+      if (startCol === col && startRow === row) {
+        this.pathTarget = null;
+        this.pathQueue = [];
+        return;
+      }
+
+      const path = this.findPath(startCol, startRow, col, row);
+      if (path && path.length > 0) {
+        this.pathTarget = { col, row };
+        this.pathQueue = path;
+      }
+    }
+
+    findPath(startCol, startRow, endCol, endRow) {
+      // A* pathfinding
+      const openSet = [];
+      const closedSet = new Set();
+      const cameFrom = new Map();
+
+      const heuristic = (c, r) => Math.abs(c - endCol) + Math.abs(r - endRow);
+      const key = (c, r) => `${c},${r}`;
+
+      const gScore = new Map();
+      const fScore = new Map();
+
+      gScore.set(key(startCol, startRow), 0);
+      fScore.set(key(startCol, startRow), heuristic(startCol, startRow));
+      openSet.push({ col: startCol, row: startRow });
+
+      const neighbors = [
+        { dc: 0, dr: -1 }, // up
+        { dc: 0, dr: 1 },  // down
+        { dc: -1, dr: 0 }, // left
+        { dc: 1, dr: 0 },  // right
+      ];
+
+      while (openSet.length > 0) {
+        // Get node with lowest fScore
+        openSet.sort((a, b) => {
+          const fa = fScore.get(key(a.col, a.row)) || Infinity;
+          const fb = fScore.get(key(b.col, b.row)) || Infinity;
+          return fa - fb;
+        });
+        const current = openSet.shift();
+        const ck = key(current.col, current.row);
+
+        // Reached goal
+        if (current.col === endCol && current.row === endRow) {
+          const path = [];
+          let curr = ck;
+          while (cameFrom.has(curr)) {
+            const [c, r] = curr.split(',').map(Number);
+            path.unshift({ col: c, row: r });
+            curr = cameFrom.get(curr);
+          }
+          return path;
+        }
+
+        closedSet.add(ck);
+
+        for (const { dc, dr } of neighbors) {
+          const nc = current.col + dc;
+          const nr = current.row + dr;
+          const nk = key(nc, nr);
+
+          if (closedSet.has(nk)) continue;
+          if (!this.canWalk(nc, nr)) continue;
+
+          const tentativeG = (gScore.get(ck) || 0) + 1;
+          const existingG = gScore.get(nk);
+
+          if (existingG === undefined || tentativeG < existingG) {
+            cameFrom.set(nk, ck);
+            gScore.set(nk, tentativeG);
+            fScore.set(nk, tentativeG + heuristic(nc, nr));
+
+            if (!openSet.some(n => n.col === nc && n.row === nr)) {
+              openSet.push({ col: nc, row: nr });
+            }
+          }
+        }
+      }
+
+      // No path found
+      return null;
+    }
+
+    clearPath() {
+      this.pathTarget = null;
+      this.pathQueue = [];
+    }
+
+    getNextPathStep() {
+      if (this.pathQueue.length === 0) return null;
+      return this.pathQueue.shift();
     }
 
     getPlayerScreenPos() {
@@ -1391,6 +1577,24 @@
           const { x, y } = tileToScreen(col, row);
           drawTile(ctx, col, row, x, y, time);
         }
+      }
+
+      // Draw destination marker if path target exists
+      if (this.pathTarget) {
+        const { x, y } = tileToScreen(this.pathTarget.col, this.pathTarget.row);
+        const pulse = 0.5 + Math.sin(time * 0.006) * 0.3;
+        ctx.save();
+        ctx.globalAlpha = pulse * 0.4;
+        ctx.strokeStyle = C.playerBody;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, y + 4);
+        ctx.lineTo(x + TILE_W / 2 - 4, y + TILE_H / 2);
+        ctx.lineTo(x, y + TILE_H - 4);
+        ctx.lineTo(x - TILE_W / 2 + 4, y + TILE_H / 2);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
       }
 
       // Collect drawable entities (objects + player) for depth sorting
