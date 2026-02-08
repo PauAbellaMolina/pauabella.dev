@@ -15,6 +15,9 @@
   // Movement duration in ms (per tile)
   const MOVE_MS = 180;
 
+  // LocalStorage key for save data
+  const SAVE_KEY = 'keepers-isle-save';
+
   // Tile type enum
   const T = {
     DEEP_WATER:    0,
@@ -1061,8 +1064,69 @@
       this.lastTime = 0;
       this.running = false;
 
+      // Load saved state if exists
+      this.loadState();
+
       this.resize();
       this.setupInput();
+    }
+
+    // ── Save/Load State ──
+
+    saveState() {
+      const state = {
+        player: {
+          col: this.player.col,
+          row: this.player.row,
+          direction: this.player.direction,
+        },
+        inventory: { ...this.inventory },
+        harvestedObjects: Array.from(this.harvestedObjects),
+      };
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      } catch (e) {
+        // localStorage might be unavailable or full
+      }
+    }
+
+    loadState() {
+      try {
+        const saved = localStorage.getItem(SAVE_KEY);
+        if (!saved) return;
+
+        const state = JSON.parse(saved);
+
+        // Restore player position
+        if (state.player) {
+          this.player.col = state.player.col;
+          this.player.row = state.player.row;
+          this.player.targetCol = state.player.col;
+          this.player.targetRow = state.player.row;
+          this.player.prevCol = state.player.col;
+          this.player.prevRow = state.player.row;
+          this.player.direction = state.player.direction || 'down';
+
+          // Update camera to player position
+          const pos = tileToScreen(this.player.col, this.player.row);
+          this.camera = { x: pos.x, y: pos.y };
+        }
+
+        // Restore inventory
+        if (state.inventory) {
+          this.inventory = { ...state.inventory };
+        }
+
+        // Restore harvested objects
+        if (state.harvestedObjects) {
+          this.harvestedObjects = new Set(state.harvestedObjects);
+        }
+
+        // Update UI
+        this.updateInventory();
+      } catch (e) {
+        // Invalid save data, start fresh
+      }
     }
 
     resize() {
@@ -1231,6 +1295,7 @@
           p.moving = false;
           p.moveProgress = 0;
           this.updateHud();
+          this.saveState();
 
           // Check if reached path destination
           if (this.pathTarget && p.col === this.pathTarget.col && p.row === this.pathTarget.row) {
@@ -1475,6 +1540,7 @@
           this.inventory.sticks++;
           this.harvestedObjects.add(key);
           this.updateInventory();
+          this.saveState();
           this.showCollectPopup('+1 Stick');
           this.pulseInvItem(this.invSticksItem);
           return;
@@ -1483,6 +1549,7 @@
           this.inventory.stones++;
           this.harvestedObjects.add(key);
           this.updateInventory();
+          this.saveState();
           this.showCollectPopup('+1 Stone');
           this.pulseInvItem(this.invStonesItem);
           return;
@@ -1645,7 +1712,7 @@
 
   let game = null;
 
-  startBtn.addEventListener('click', () => {
+  function startGame() {
     startScreen.style.display = 'none';
     gameContainer.classList.remove('hidden');
 
@@ -1655,6 +1722,16 @@
       game.resize();
       game.start();
     });
-  });
+  }
+
+  startBtn.addEventListener('click', startGame);
+
+  // Check for saved progress
+  const hasSave = localStorage.getItem(SAVE_KEY);
+  if (hasSave) {
+    // Update button text and auto-start
+    startBtn.textContent = 'Continue';
+    startGame();
+  }
 
 })();
