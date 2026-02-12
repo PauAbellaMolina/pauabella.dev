@@ -15,6 +15,12 @@
   // Movement duration in ms (per tile)
   const MOVE_MS = 180;
 
+  // Player movement speed (tiles per second)
+  const PLAYER_SPEED = 4.5;
+
+  // Player collision radius (in tile units)
+  const PLAYER_RADIUS = 0.3;
+
   // LocalStorage key for save data
   const SAVE_KEY = 'keepers-isle-save';
 
@@ -1009,27 +1015,27 @@
       this.ctx = canvas.getContext('2d');
       this.hudLabel = hudLabel;
 
-      // Player state
+      // Player state (x, y are in tile coordinates, can be fractional)
       this.player = {
-        col: 8,  // start on the stone path
-        row: 9,
-        targetCol: 8,
-        targetRow: 9,
-        prevCol: 8,
-        prevRow: 9,
-        moving: false,
-        moveProgress: 0,
+        x: 8.5,  // start on the stone path (center of tile)
+        y: 9.5,
         direction: 'down',
       };
 
+      // Tap-to-move target (in tile coordinates)
+      this.moveTarget = null; // { x, y } or null
+
       // Camera offset (in screen pixels) — initialize at player position
-      const startPos = tileToScreen(this.player.col, this.player.row);
+      const startPos = tileToScreen(this.player.x, this.player.y);
       this.camera = { x: startPos.x, y: startPos.y };
+
+      // Track last tile for HUD updates and saving
+      this.lastTileCol = Math.floor(this.player.x);
+      this.lastTileRow = Math.floor(this.player.y);
 
       // Input
       this.keys = {};
       this.justPressed = {};
-      this.moveQueue = null;
 
       // Dialogue state
       this.dialogueOpen = false;
@@ -1056,10 +1062,6 @@
       this.collectText = document.getElementById('collect-text');
       this.collectTimeout = null;
 
-      // Tap-to-move pathfinding
-      this.pathTarget = null; // { col, row } destination
-      this.pathQueue = [];    // Array of { col, row } steps
-
       // Time
       this.lastTime = 0;
       this.running = false;
@@ -1076,8 +1078,8 @@
     saveState() {
       const state = {
         player: {
-          col: this.player.col,
-          row: this.player.row,
+          x: this.player.x,
+          y: this.player.y,
           direction: this.player.direction,
         },
         inventory: { ...this.inventory },
@@ -1098,21 +1100,31 @@
         const state = JSON.parse(saved);
 
         // Restore player position (with validation)
-        if (state.player &&
-            typeof state.player.col === 'number' &&
-            typeof state.player.row === 'number' &&
-            state.player.col >= 0 && state.player.col < MAP_COLS &&
-            state.player.row >= 0 && state.player.row < MAP_ROWS) {
-          this.player.col = state.player.col;
-          this.player.row = state.player.row;
-          this.player.targetCol = state.player.col;
-          this.player.targetRow = state.player.row;
-          this.player.prevCol = state.player.col;
-          this.player.prevRow = state.player.row;
+        // Support both old format (col, row) and new format (x, y)
+        let px, py;
+        if (state.player) {
+          if (typeof state.player.x === 'number' && typeof state.player.y === 'number') {
+            px = state.player.x;
+            py = state.player.y;
+          } else if (typeof state.player.col === 'number' && typeof state.player.row === 'number') {
+            // Convert old tile-based save to new format
+            px = state.player.col + 0.5;
+            py = state.player.row + 0.5;
+          }
+        }
+
+        if (px !== undefined && py !== undefined &&
+            px >= 0 && px < MAP_COLS && py >= 0 && py < MAP_ROWS) {
+          this.player.x = px;
+          this.player.y = py;
           this.player.direction = state.player.direction || 'down';
 
+          // Update tracking
+          this.lastTileCol = Math.floor(px);
+          this.lastTileRow = Math.floor(py);
+
           // Update camera to player position
-          const pos = tileToScreen(this.player.col, this.player.row);
+          const pos = tileToScreen(this.player.x, this.player.y);
           this.camera.x = pos.x;
           this.camera.y = pos.y;
         }
@@ -1219,13 +1231,13 @@
         const worldX = tapX - this.screenW / 2 + this.camera.x;
         const worldY = tapY - this.screenH / 2 + this.camera.y - 40; // -40 matches render offset
 
-        // Convert world coords to tile
+        // Convert world coords to tile coordinates
         const { col, row } = screenToTile(worldX, worldY);
 
-        // Check if destination is valid and walkable
+        // Set target to center of that tile if it's walkable
         if (col >= 0 && col < MAP_COLS && row >= 0 && row < MAP_ROWS) {
-          if (this.canWalk(col, row)) {
-            this.setPathTarget(col, row);
+          if (this.canWalkTile(col, row)) {
+            this.moveTarget = { x: col + 0.5, y: row + 0.5 };
           }
         }
       };
@@ -1296,92 +1308,107 @@
       this.justPressed = {};
 
       const p = this.player;
+      const speed = PLAYER_SPEED * dt / 1000; // tiles per frame
 
-      if (p.moving) {
-        p.moveProgress += dt / MOVE_MS;
-        if (p.moveProgress >= 1) {
-          // Arrive
-          p.col = p.targetCol;
-          p.row = p.targetRow;
-          p.moving = false;
-          p.moveProgress = 0;
-          this.updateHud();
-          this.saveState();
+      // Determine movement direction
+      let dx = 0;
+      let dy = 0;
 
-          // Check if reached path destination
-          if (this.pathTarget && p.col === this.pathTarget.col && p.row === this.pathTarget.row) {
-            this.clearPath();
-          }
+      // Check for keyboard/dpad input
+      const inputDir = this.getInputDirection();
+      if (inputDir) {
+        // Manual input cancels tap-to-move target
+        this.moveTarget = null;
+        dx = inputDir.dx;
+        dy = inputDir.dy;
+      } else if (this.moveTarget) {
+        // Move toward tap target
+        const toX = this.moveTarget.x - p.x;
+        const toY = this.moveTarget.y - p.y;
+        const dist = Math.sqrt(toX * toX + toY * toY);
+
+        if (dist < 0.1) {
+          // Reached target
+          this.moveTarget = null;
+        } else {
+          // Normalize and move toward target
+          dx = toX / dist;
+          dy = toY / dist;
         }
       }
 
-      if (!p.moving) {
-        const dir = this.getInputDirection();
-        if (dir) {
-          // Manual input clears any active path
-          this.clearPath();
+      // Apply movement if any
+      if (dx !== 0 || dy !== 0) {
+        // Normalize diagonal movement
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0) {
+          dx = (dx / len) * speed;
+          dy = (dy / len) * speed;
+        }
 
-          const nc = p.col + dir.dc;
-          const nr = p.row + dir.dr;
-          if (this.canWalk(nc, nr)) {
-            p.prevCol = p.col;
-            p.prevRow = p.row;
-            p.targetCol = nc;
-            p.targetRow = nr;
-            p.moving = true;
-            p.moveProgress = 0;
-            p.direction = dir.name;
-          }
-        } else if (this.pathQueue.length > 0) {
-          // Follow the path
-          const next = this.getNextPathStep();
-          if (next && this.canWalk(next.col, next.row)) {
-            // Calculate direction for animation
-            const dc = next.col - p.col;
-            const dr = next.row - p.row;
-            let direction = 'down';
-            if (dr < 0) direction = 'up';
-            else if (dr > 0) direction = 'down';
-            else if (dc < 0) direction = 'left';
-            else if (dc > 0) direction = 'right';
+        // Try to move, with collision detection
+        const newX = p.x + dx;
+        const newY = p.y + dy;
 
-            p.prevCol = p.col;
-            p.prevRow = p.row;
-            p.targetCol = next.col;
-            p.targetRow = next.row;
-            p.moving = true;
-            p.moveProgress = 0;
-            p.direction = direction;
-          } else {
-            // Path blocked, clear it
-            this.clearPath();
+        // Try full movement
+        if (this.canMoveTo(newX, newY)) {
+          p.x = newX;
+          p.y = newY;
+        } else {
+          // Try sliding along walls
+          if (this.canMoveTo(newX, p.y)) {
+            p.x = newX;
+          } else if (this.canMoveTo(p.x, newY)) {
+            p.y = newY;
           }
         }
+
+        // Update direction for sprite
+        if (Math.abs(dx) > Math.abs(dy)) {
+          p.direction = dx > 0 ? 'right' : 'left';
+        } else if (dy !== 0) {
+          p.direction = dy > 0 ? 'down' : 'up';
+        }
+      }
+
+      // Check if entered new tile (for HUD and saving)
+      const currentTileCol = Math.floor(p.x);
+      const currentTileRow = Math.floor(p.y);
+      if (currentTileCol !== this.lastTileCol || currentTileRow !== this.lastTileRow) {
+        this.lastTileCol = currentTileCol;
+        this.lastTileRow = currentTileRow;
+        this.updateHud();
+        this.saveState();
       }
 
       // Smooth camera toward player
       const target = this.getPlayerScreenPos();
-      this.camera.x += (target.x - this.camera.x) * 0.1;
-      this.camera.y += (target.y - this.camera.y) * 0.1;
+      this.camera.x += (target.x - this.camera.x) * 0.12;
+      this.camera.y += (target.y - this.camera.y) * 0.12;
     }
 
     getInputDirection() {
+      let dx = 0, dy = 0;
       if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) {
-        return { dc: 0, dr: -1, name: 'up' };
+        dy = -1;
       }
       if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) {
-        return { dc: 0, dr: 1, name: 'down' };
+        dy = 1;
       }
       if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) {
-        return { dc: -1, dr: 0, name: 'left' };
+        dx = -1;
       }
       if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) {
-        return { dc: 1, dr: 0, name: 'right' };
+        dx = 1;
       }
-      return null;
+      if (dx === 0 && dy === 0) return null;
+      return { dx, dy };
     }
 
-    canWalk(col, row) {
+    // ── Collision Detection ──
+
+    // Check if a tile (by integer coordinates) is walkable
+    canWalkTile(col, row) {
       if (col < 0 || row < 0 || col >= MAP_COLS || row >= MAP_ROWS) return false;
       const tile = TERRAIN[row][col];
       if (tile === T.DEEP_WATER || tile === T.SHALLOW_WATER) return false;
@@ -1390,131 +1417,41 @@
       return true;
     }
 
-    // ── Pathfinding (A*) ──
+    // Check if the player can move to a position (with collision radius)
+    canMoveTo(x, y) {
+      const r = PLAYER_RADIUS;
 
-    setPathTarget(col, row) {
-      const startCol = this.player.moving ? this.player.targetCol : this.player.col;
-      const startRow = this.player.moving ? this.player.targetRow : this.player.row;
-
-      // Already there
-      if (startCol === col && startRow === row) {
-        this.pathTarget = null;
-        this.pathQueue = [];
-        return;
-      }
-
-      const path = this.findPath(startCol, startRow, col, row);
-      if (path && path.length > 0) {
-        this.pathTarget = { col, row };
-        this.pathQueue = path;
-      }
-    }
-
-    findPath(startCol, startRow, endCol, endRow) {
-      // A* pathfinding
-      const openSet = [];
-      const closedSet = new Set();
-      const cameFrom = new Map();
-
-      const heuristic = (c, r) => Math.abs(c - endCol) + Math.abs(r - endRow);
-      const key = (c, r) => `${c},${r}`;
-
-      const gScore = new Map();
-      const fScore = new Map();
-
-      gScore.set(key(startCol, startRow), 0);
-      fScore.set(key(startCol, startRow), heuristic(startCol, startRow));
-      openSet.push({ col: startCol, row: startRow });
-
-      const neighbors = [
-        { dc: 0, dr: -1 }, // up
-        { dc: 0, dr: 1 },  // down
-        { dc: -1, dr: 0 }, // left
-        { dc: 1, dr: 0 },  // right
+      // Check corners of player's collision circle
+      const checkPoints = [
+        { x: x - r, y: y - r },
+        { x: x + r, y: y - r },
+        { x: x - r, y: y + r },
+        { x: x + r, y: y + r },
+        { x: x, y: y - r },
+        { x: x, y: y + r },
+        { x: x - r, y: y },
+        { x: x + r, y: y },
       ];
 
-      while (openSet.length > 0) {
-        // Get node with lowest fScore
-        openSet.sort((a, b) => {
-          const fa = fScore.get(key(a.col, a.row)) || Infinity;
-          const fb = fScore.get(key(b.col, b.row)) || Infinity;
-          return fa - fb;
-        });
-        const current = openSet.shift();
-        const ck = key(current.col, current.row);
-
-        // Reached goal
-        if (current.col === endCol && current.row === endRow) {
-          const path = [];
-          let curr = ck;
-          while (cameFrom.has(curr)) {
-            const [c, r] = curr.split(',').map(Number);
-            path.unshift({ col: c, row: r });
-            curr = cameFrom.get(curr);
-          }
-          return path;
-        }
-
-        closedSet.add(ck);
-
-        for (const { dc, dr } of neighbors) {
-          const nc = current.col + dc;
-          const nr = current.row + dr;
-          const nk = key(nc, nr);
-
-          if (closedSet.has(nk)) continue;
-          if (!this.canWalk(nc, nr)) continue;
-
-          const tentativeG = (gScore.get(ck) || 0) + 1;
-          const existingG = gScore.get(nk);
-
-          if (existingG === undefined || tentativeG < existingG) {
-            cameFrom.set(nk, ck);
-            gScore.set(nk, tentativeG);
-            fScore.set(nk, tentativeG + heuristic(nc, nr));
-
-            if (!openSet.some(n => n.col === nc && n.row === nr)) {
-              openSet.push({ col: nc, row: nr });
-            }
-          }
+      for (const pt of checkPoints) {
+        const col = Math.floor(pt.x);
+        const row = Math.floor(pt.y);
+        if (!this.canWalkTile(col, row)) {
+          return false;
         }
       }
-
-      // No path found
-      return null;
-    }
-
-    clearPath() {
-      this.pathTarget = null;
-      this.pathQueue = [];
-    }
-
-    getNextPathStep() {
-      if (this.pathQueue.length === 0) return null;
-      return this.pathQueue.shift();
+      return true;
     }
 
     getPlayerScreenPos() {
-      const p = this.player;
-      if (p.moving) {
-        const from = tileToScreen(p.prevCol, p.prevRow);
-        const to = tileToScreen(p.targetCol, p.targetRow);
-        const t = this.easeInOut(p.moveProgress);
-        return {
-          x: from.x + (to.x - from.x) * t,
-          y: from.y + (to.y - from.y) * t,
-        };
-      }
-      return tileToScreen(p.col, p.row);
-    }
-
-    easeInOut(t) {
-      return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      return tileToScreen(this.player.x, this.player.y);
     }
 
     updateHud() {
       if (this.hudLabel) {
-        this.hudLabel.textContent = getLocationLabel(this.player.col, this.player.row);
+        const col = Math.floor(this.player.x);
+        const row = Math.floor(this.player.y);
+        this.hudLabel.textContent = getLocationLabel(col, row);
       }
     }
 
@@ -1529,11 +1466,12 @@
         right: { dc:  1, dr: 0 },
       };
       const d = dirMap[p.direction] || { dc: 0, dr: 1 };
-      return { col: p.col + d.dc, row: p.row + d.dr };
+      const col = Math.floor(p.x) + d.dc;
+      const row = Math.floor(p.y) + d.dr;
+      return { col, row };
     }
 
     interact(button) {
-      if (this.player.moving) return;
 
       const { col, row } = this.getFacingTile();
       if (col < 0 || row < 0 || col >= MAP_COLS || row >= MAP_ROWS) return;
@@ -1657,9 +1595,9 @@
         }
       }
 
-      // Draw destination marker if path target exists
-      if (this.pathTarget) {
-        const { x, y } = tileToScreen(this.pathTarget.col, this.pathTarget.row);
+      // Draw destination marker if move target exists
+      if (this.moveTarget) {
+        const { x, y } = tileToScreen(this.moveTarget.x, this.moveTarget.y);
         const pulse = 0.5 + Math.sin(time * 0.006) * 0.3;
         ctx.save();
         ctx.globalAlpha = pulse * 0.4;
@@ -1686,14 +1624,10 @@
         }
       }
 
-      // Player position for sorting
+      // Player position for sorting (use player's tile coordinates)
       const pPos = this.getPlayerScreenPos();
-      const pCol = this.player.moving
-        ? this.player.prevCol + (this.player.targetCol - this.player.prevCol) * this.player.moveProgress
-        : this.player.col;
-      const pRow = this.player.moving
-        ? this.player.prevRow + (this.player.targetRow - this.player.prevRow) * this.player.moveProgress
-        : this.player.row;
+      const pCol = this.player.x;
+      const pRow = this.player.y;
       entities.push({ col: pCol, row: pRow, type: 'player' });
 
       // Sort by depth (row + col gives isometric depth)
