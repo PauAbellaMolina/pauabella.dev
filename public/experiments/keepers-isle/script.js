@@ -1097,8 +1097,12 @@
 
         const state = JSON.parse(saved);
 
-        // Restore player position
-        if (state.player) {
+        // Restore player position (with validation)
+        if (state.player &&
+            typeof state.player.col === 'number' &&
+            typeof state.player.row === 'number' &&
+            state.player.col >= 0 && state.player.col < MAP_COLS &&
+            state.player.row >= 0 && state.player.row < MAP_ROWS) {
           this.player.col = state.player.col;
           this.player.row = state.player.row;
           this.player.targetCol = state.player.col;
@@ -1109,16 +1113,22 @@
 
           // Update camera to player position
           const pos = tileToScreen(this.player.col, this.player.row);
-          this.camera = { x: pos.x, y: pos.y };
+          this.camera.x = pos.x;
+          this.camera.y = pos.y;
         }
 
         // Restore inventory
         if (state.inventory) {
-          this.inventory = { ...state.inventory };
+          if (typeof state.inventory.sticks === 'number') {
+            this.inventory.sticks = state.inventory.sticks;
+          }
+          if (typeof state.inventory.stones === 'number') {
+            this.inventory.stones = state.inventory.stones;
+          }
         }
 
         // Restore harvested objects
-        if (state.harvestedObjects) {
+        if (Array.isArray(state.harvestedObjects)) {
           this.harvestedObjects = new Set(state.harvestedObjects);
         }
 
@@ -1126,6 +1136,7 @@
         this.updateInventory();
       } catch (e) {
         // Invalid save data, start fresh
+        console.warn('Failed to load save data:', e);
       }
     }
 
