@@ -1389,17 +1389,26 @@
 
     getInputDirection() {
       let dx = 0, dy = 0;
+      // In isometric view, screen directions map to diagonal tile movement:
+      // Screen up    = tile northwest (x--, y--)
+      // Screen down  = tile southeast (x++, y++)
+      // Screen left  = tile southwest (x--, y++)
+      // Screen right = tile northeast (x++, y--)
       if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) {
-        dy = -1;
+        dx -= 1;
+        dy -= 1;
       }
       if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) {
-        dy = 1;
+        dx += 1;
+        dy += 1;
       }
       if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) {
-        dx = -1;
+        dx -= 1;
+        dy += 1;
       }
       if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) {
-        dx = 1;
+        dx += 1;
+        dy -= 1;
       }
       if (dx === 0 && dy === 0) return null;
       return { dx, dy };
