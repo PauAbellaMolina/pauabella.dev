@@ -1388,29 +1388,31 @@
     }
 
     getInputDirection() {
-      let dx = 0, dy = 0;
-      // In isometric view, screen directions map to diagonal tile movement:
-      // Screen up    = tile northwest (x--, y--)
-      // Screen down  = tile southeast (x++, y++)
-      // Screen left  = tile southwest (x--, y++)
-      // Screen right = tile northeast (x++, y--)
+      // Get input as screen-space direction (what the player visually expects)
+      let screenDx = 0, screenDy = 0;
       if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) {
-        dx -= 1;
-        dy -= 1;
+        screenDy -= 1;
       }
       if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) {
-        dx += 1;
-        dy += 1;
+        screenDy += 1;
       }
       if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) {
-        dx -= 1;
-        dy += 1;
+        screenDx -= 1;
       }
       if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) {
-        dx += 1;
-        dy -= 1;
+        screenDx += 1;
       }
-      if (dx === 0 && dy === 0) return null;
+      if (screenDx === 0 && screenDy === 0) return null;
+
+      // Convert screen direction to tile direction using inverse isometric transform
+      // screen.x = (tile.x - tile.y) * (TILE_W/2)
+      // screen.y = (tile.x + tile.y) * (TILE_H/2)
+      // Solving for tile coords:
+      // tile.x = screen.x/TILE_W + screen.y/TILE_H
+      // tile.y = -screen.x/TILE_W + screen.y/TILE_H
+      const dx = screenDx / TILE_W + screenDy / TILE_H;
+      const dy = -screenDx / TILE_W + screenDy / TILE_H;
+
       return { dx, dy };
     }
 
