@@ -16,7 +16,7 @@
   const MOVE_MS = 180;
 
   // Player movement speed (tiles per second)
-  const PLAYER_SPEED = 4.5;
+  const PLAYER_SPEED = 150; // screen pixels per second
 
   // Player collision radius (in tile units)
   const PLAYER_RADIUS = 0.3;
@@ -178,6 +178,22 @@
     const col = (sx / (TILE_W / 2) + sy / (TILE_H / 2)) / 2;
     const row = (sy / (TILE_H / 2) - sx / (TILE_W / 2)) / 2;
     return { col: Math.round(col), row: Math.round(row) };
+  }
+
+  // Convert screen displacement to tile displacement (for movement)
+  function screenToTileDisplacement(sx, sy) {
+    // Same math as screenToTile but without rounding - for continuous movement
+    const dx = (sx / (TILE_W / 2) + sy / (TILE_H / 2)) / 2;
+    const dy = (sy / (TILE_H / 2) - sx / (TILE_W / 2)) / 2;
+    return { dx, dy };
+  }
+
+  // Convert tile displacement to screen displacement
+  function tileToScreenDisplacement(dx, dy) {
+    return {
+      sx: (dx - dy) * (TILE_W / 2),
+      sy: (dx + dy) * (TILE_H / 2),
+    };
   }
 
   // Draw an isometric diamond (flat tile)
@@ -1308,43 +1324,50 @@
       this.justPressed = {};
 
       const p = this.player;
-      const speed = PLAYER_SPEED * dt / 1000; // tiles per frame
+      const screenSpeed = PLAYER_SPEED * dt / 1000; // screen pixels per frame
 
-      // Determine movement direction
-      let dx = 0;
-      let dy = 0;
+      // Determine movement direction in SCREEN space
+      let screenDx = 0;
+      let screenDy = 0;
 
-      // Check for keyboard/dpad input
+      // Check for keyboard/dpad input (returns screen direction)
       const inputDir = this.getInputDirection();
       if (inputDir) {
         // Manual input cancels tap-to-move target
         this.moveTarget = null;
-        dx = inputDir.dx;
-        dy = inputDir.dy;
+        screenDx = inputDir.sx;
+        screenDy = inputDir.sy;
       } else if (this.moveTarget) {
-        // Move toward tap target
-        const toX = this.moveTarget.x - p.x;
-        const toY = this.moveTarget.y - p.y;
+        // Move toward tap target - compute direction in screen space
+        const playerScreen = this.getPlayerScreenPos();
+        const targetScreen = tileToScreen(this.moveTarget.x, this.moveTarget.y);
+        const toX = targetScreen.x - playerScreen.x;
+        const toY = targetScreen.y - playerScreen.y;
         const dist = Math.sqrt(toX * toX + toY * toY);
 
-        if (dist < 0.1) {
-          // Reached target
+        if (dist < 5) {
+          // Reached target (5 pixels threshold)
           this.moveTarget = null;
         } else {
-          // Normalize and move toward target
-          dx = toX / dist;
-          dy = toY / dist;
+          // Direction in screen space
+          screenDx = toX / dist;
+          screenDy = toY / dist;
         }
       }
 
       // Apply movement if any
-      if (dx !== 0 || dy !== 0) {
-        // Normalize diagonal movement
-        const len = Math.sqrt(dx * dx + dy * dy);
+      if (screenDx !== 0 || screenDy !== 0) {
+        // Normalize screen direction (for diagonal keyboard input)
+        const len = Math.sqrt(screenDx * screenDx + screenDy * screenDy);
         if (len > 0) {
-          dx = (dx / len) * speed;
-          dy = (dy / len) * speed;
+          screenDx = (screenDx / len) * screenSpeed;
+          screenDy = (screenDy / len) * screenSpeed;
         }
+
+        // Convert screen displacement to tile displacement
+        const tileDisp = screenToTileDisplacement(screenDx, screenDy);
+        const dx = tileDisp.dx;
+        const dy = tileDisp.dy;
 
         // Try to move, with collision detection
         const newX = p.x + dx;
@@ -1355,7 +1378,7 @@
           p.x = newX;
           p.y = newY;
         } else {
-          // Try sliding along walls
+          // Try sliding along walls - also convert to screen space for consistency
           if (this.canMoveTo(newX, p.y)) {
             p.x = newX;
           } else if (this.canMoveTo(p.x, newY)) {
@@ -1363,11 +1386,11 @@
           }
         }
 
-        // Update direction for sprite
-        if (Math.abs(dx) > Math.abs(dy)) {
-          p.direction = dx > 0 ? 'right' : 'left';
-        } else if (dy !== 0) {
-          p.direction = dy > 0 ? 'down' : 'up';
+        // Update direction for sprite based on SCREEN direction
+        if (Math.abs(screenDx) > Math.abs(screenDy)) {
+          p.direction = screenDx > 0 ? 'right' : 'left';
+        } else if (screenDy !== 0) {
+          p.direction = screenDy > 0 ? 'down' : 'up';
         }
       }
 
@@ -1388,32 +1411,22 @@
     }
 
     getInputDirection() {
-      // Get input as screen-space direction (what the player visually expects)
-      let screenDx = 0, screenDy = 0;
+      // Returns screen-space direction (what the player visually expects)
+      let sx = 0, sy = 0;
       if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) {
-        screenDy -= 1;
+        sy -= 1;
       }
       if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) {
-        screenDy += 1;
+        sy += 1;
       }
       if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) {
-        screenDx -= 1;
+        sx -= 1;
       }
       if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) {
-        screenDx += 1;
+        sx += 1;
       }
-      if (screenDx === 0 && screenDy === 0) return null;
-
-      // Convert screen direction to tile direction using inverse isometric transform
-      // screen.x = (tile.x - tile.y) * (TILE_W/2)
-      // screen.y = (tile.x + tile.y) * (TILE_H/2)
-      // Solving for tile coords:
-      // tile.x = screen.x/TILE_W + screen.y/TILE_H
-      // tile.y = -screen.x/TILE_W + screen.y/TILE_H
-      const dx = screenDx / TILE_W + screenDy / TILE_H;
-      const dy = -screenDx / TILE_W + screenDy / TILE_H;
-
-      return { dx, dy };
+      if (sx === 0 && sy === 0) return null;
+      return { sx, sy };
     }
 
     // ── Collision Detection ──
