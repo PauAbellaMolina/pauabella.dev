@@ -389,6 +389,84 @@ body {
   border-color: #0f4c81;
 }
 
+/* Branch indicator and picker */
+.timeline-dot-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.branch-indicator {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 16px;
+  height: 16px;
+  background: #0f4c81;
+  color: #fff0db;
+  border-radius: 50%;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  z-index: 1;
+}
+
+.branch-indicator:hover {
+  transform: scale(1.15);
+}
+
+.branch-picker {
+  background: #fff0db;
+  border: 2px solid rgba(15, 76, 129, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(15, 76, 129, 0.15);
+  min-width: 200px;
+  max-width: 280px;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.branch-picker-header {
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+  border-bottom: 1px solid rgba(15, 76, 129, 0.1);
+}
+
+.branch-option {
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid rgba(15, 76, 129, 0.05);
+}
+
+.branch-option:last-child {
+  border-bottom: none;
+}
+
+.branch-option:hover {
+  background: rgba(15, 76, 129, 0.08);
+}
+
+.branch-option.active {
+  background: rgba(15, 76, 129, 0.12);
+  font-weight: 600;
+}
+
+.branch-option.active::before {
+  content: '→ ';
+  opacity: 0.5;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .start-content h1 {
