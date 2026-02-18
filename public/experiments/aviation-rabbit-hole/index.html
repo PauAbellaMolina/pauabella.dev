@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aviation Rabbit Hole</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Start Screen -->
+  <div id="start-screen" class="screen">
+    <div class="start-content">
+      <div class="plane-icon">
+        <svg viewBox="0 0 100 100" width="80" height="80">
+          <path d="M50 10 L55 25 L90 45 L90 50 L55 40 L55 70 L70 80 L70 85 L50 78 L30 85 L30 80 L45 70 L45 40 L10 50 L10 45 L45 25 Z" fill="#0f4c81"/>
+        </svg>
+      </div>
+      <h1>Aviation Rabbit Hole</h1>
+      <p>Explore the fascinating world of aviation through Wikipedia. Start with a random article and follow the links that catch your eye.</p>
+      <button id="start-btn">Begin Journey</button>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="hidden">
+    <!-- Timeline Header -->
+    <div id="timeline-container">
+      <div id="timeline">
+        <!-- Timeline items will be inserted here -->
+      </div>
+    </div>
+
+    <!-- Article Container -->
+    <div id="article-container">
+      <div id="loading" class="hidden">
+        <div class="loading-spinner"></div>
+        <p>Loading article...</p>
+      </div>
+      <article id="article-content">
+        <!-- Wikipedia content will be inserted here -->
+      </article>
+    </div>
+
+    <!-- Bottom Controls -->
+    <div id="controls">
+      <button id="back-btn" class="control-btn" disabled>
+        <svg viewBox="0 0 24 24" width="20" height="20">
+          <path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Back
+      </button>
+      <button id="random-btn" class="control-btn">
+        <svg viewBox="0 0 24 24" width="20" height="20">
+          <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        New Random
+      </button>
+      <button id="forward-btn" class="control-btn" disabled>
+        Forward
+        <svg viewBox="0 0 24 24" width="20" height="20">
+          <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

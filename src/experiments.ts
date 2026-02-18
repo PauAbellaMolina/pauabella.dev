@@ -45,6 +45,14 @@ const experiments: Experiment[] = [
     displayMode: 'fullscreen',
     thumbnail: null,
   },
+  {
+    id: 'aviation-rabbit-hole',
+    title: 'Aviation Rabbit Hole',
+    description: 'Dive into aviation Wikipedia articles and follow the links that fascinate you.',
+    path: '/experiments/aviation-rabbit-hole/index.html',
+    displayMode: 'fullscreen',
+    thumbnail: null,
+  },
 ];
 
 export default experiments;
