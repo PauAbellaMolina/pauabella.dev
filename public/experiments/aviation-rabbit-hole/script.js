@@ -48,9 +48,43 @@
   const WIKIPEDIA_API = 'https://en.wikipedia.org/api/rest_v1';
   const WIKIPEDIA_PARSE_API = 'https://en.wikipedia.org/w/api.php';
 
+  // Tree node structure for branching history
+  class HistoryNode {
+    constructor(title, pageTitle, html, parent = null) {
+      this.id = Date.now() + Math.random().toString(36).substr(2, 9);
+      this.title = title;
+      this.pageTitle = pageTitle;
+      this.html = html;
+      this.parent = parent;
+      this.children = [];
+      this.activeChildIndex = -1; // Which child branch was last visited
+    }
+
+    addChild(node) {
+      node.parent = this;
+      this.children.push(node);
+      this.activeChildIndex = this.children.length - 1;
+      return node;
+    }
+
+    getPath() {
+      const path = [];
+      let node = this;
+      while (node) {
+        path.unshift(node);
+        node = node.parent;
+      }
+      return path;
+    }
+
+    hasMultipleChildren() {
+      return this.children.length > 1;
+    }
+  }
+
   // State
-  let history = [];
-  let currentIndex = -1;
+  let rootNode = null;
+  let currentNode = null;
 
   // DOM elements
   const startScreen = document.getElementById('start-screen');
@@ -83,10 +117,13 @@
 
   async function loadRandomArticle() {
     const randomSeed = AVIATION_SEEDS[Math.floor(Math.random() * AVIATION_SEEDS.length)];
-    await loadArticle(randomSeed, true);
+    // New random = completely new tree
+    rootNode = null;
+    currentNode = null;
+    await loadArticle(randomSeed);
   }
 
-  async function loadArticle(title, isNewBranch = false) {
+  async function loadArticle(title) {
     showLoading(true);
 
     try {
@@ -122,27 +159,21 @@
 
       const html = parseData.parse.text['*'];
 
-      // Update history
-      if (isNewBranch) {
-        // Starting a new rabbit hole or clicking "New Random"
-        // Truncate forward history if we're not at the end
-        if (currentIndex < history.length - 1) {
-          history = history.slice(0, currentIndex + 1);
-        }
+      // Create new node
+      const newNode = new HistoryNode(cleanTitle, pageTitle, html);
+
+      if (!rootNode) {
+        // First article - this is the root
+        rootNode = newNode;
+        currentNode = newNode;
+      } else {
+        // Add as child of current node
+        currentNode.addChild(newNode);
+        currentNode = newNode;
       }
 
-      // Add to history if it's a new article (not navigating back/forward)
-      const article = {
-        title: cleanTitle,
-        pageTitle: pageTitle,
-        html: html
-      };
-
-      history.push(article);
-      currentIndex = history.length - 1;
-
       // Render
-      renderArticle(article);
+      renderArticle(currentNode);
       renderTimeline();
       updateButtons();
       scrollToTop();
@@ -158,8 +189,8 @@
     showLoading(false);
   }
 
-  function renderArticle(article) {
-    articleContent.innerHTML = `<h1>${article.title}</h1>${article.html}`;
+  function renderArticle(node) {
+    articleContent.innerHTML = `<h1>${node.title}</h1>${node.html}`;
 
     // Process images to use HTTPS and handle lazy loading
     const images = articleContent.querySelectorAll('img');
@@ -201,11 +232,8 @@
         return;
       }
 
-      // Truncate forward history when diving into a new link
-      if (currentIndex < history.length - 1) {
-        history = history.slice(0, currentIndex + 1);
-      }
-
+      // Load new article as a child of current node
+      // This creates a new branch if we're not at a leaf
       loadArticle(decodeURIComponent(articleName));
     } else if (href.startsWith('#')) {
       // Handle anchor links
@@ -222,7 +250,11 @@
   function renderTimeline() {
     timeline.innerHTML = '';
 
-    history.forEach((article, index) => {
+    if (!currentNode) return;
+
+    const path = currentNode.getPath();
+
+    path.forEach((node, index) => {
       const item = document.createElement('div');
       item.className = 'timeline-item';
 
@@ -233,26 +265,45 @@
         item.appendChild(connector);
       }
 
+      // Dot container (for branch indicator)
+      const dotContainer = document.createElement('div');
+      dotContainer.className = 'timeline-dot-container';
+
       // Dot
       const dot = document.createElement('div');
       dot.className = 'timeline-dot';
-      if (index === currentIndex) {
+      if (node === currentNode) {
         dot.classList.add('active');
-      } else if (index < currentIndex) {
+      } else {
         dot.classList.add('visited');
       }
-      dot.addEventListener('click', () => navigateTo(index));
-      item.appendChild(dot);
+      dot.addEventListener('click', () => navigateTo(node));
+      dotContainer.appendChild(dot);
+
+      // Branch indicator if this node has multiple children
+      if (node.hasMultipleChildren()) {
+        const branchIndicator = document.createElement('div');
+        branchIndicator.className = 'branch-indicator';
+        branchIndicator.textContent = node.children.length;
+        branchIndicator.title = `${node.children.length} branches from here`;
+        branchIndicator.addEventListener('click', (e) => {
+          e.stopPropagation();
+          showBranchPicker(node, branchIndicator);
+        });
+        dotContainer.appendChild(branchIndicator);
+      }
+
+      item.appendChild(dotContainer);
 
       // Label
       const label = document.createElement('span');
       label.className = 'timeline-label';
-      if (index === currentIndex) {
+      if (node === currentNode) {
         label.classList.add('active');
       }
-      label.textContent = article.title;
-      label.title = article.title;
-      label.addEventListener('click', () => navigateTo(index));
+      label.textContent = node.title;
+      label.title = node.title;
+      label.addEventListener('click', () => navigateTo(node));
       item.appendChild(label);
 
       timeline.appendChild(item);
@@ -267,33 +318,82 @@
     }, 100);
   }
 
-  function navigateTo(index) {
-    if (index < 0 || index >= history.length || index === currentIndex) return;
+  function showBranchPicker(node, anchorElement) {
+    // Remove any existing picker
+    const existingPicker = document.querySelector('.branch-picker');
+    if (existingPicker) {
+      existingPicker.remove();
+    }
 
-    currentIndex = index;
-    const article = history[currentIndex];
+    const picker = document.createElement('div');
+    picker.className = 'branch-picker';
 
-    renderArticle(article);
+    const header = document.createElement('div');
+    header.className = 'branch-picker-header';
+    header.textContent = 'Choose a branch:';
+    picker.appendChild(header);
+
+    node.children.forEach((child, index) => {
+      const option = document.createElement('div');
+      option.className = 'branch-option';
+      if (index === node.activeChildIndex) {
+        option.classList.add('active');
+      }
+      option.textContent = child.title;
+      option.addEventListener('click', () => {
+        node.activeChildIndex = index;
+        navigateTo(child);
+        picker.remove();
+      });
+      picker.appendChild(option);
+    });
+
+    // Position the picker
+    const rect = anchorElement.getBoundingClientRect();
+    picker.style.position = 'fixed';
+    picker.style.top = `${rect.bottom + 8}px`;
+    picker.style.left = `${rect.left - 100}px`;
+
+    document.body.appendChild(picker);
+
+    // Close picker when clicking outside
+    const closeHandler = (e) => {
+      if (!picker.contains(e.target) && e.target !== anchorElement) {
+        picker.remove();
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+    setTimeout(() => document.addEventListener('click', closeHandler), 0);
+  }
+
+  function navigateTo(node) {
+    if (!node || node === currentNode) return;
+
+    currentNode = node;
+
+    renderArticle(node);
     renderTimeline();
     updateButtons();
     scrollToTop();
   }
 
   function goBack() {
-    if (currentIndex > 0) {
-      navigateTo(currentIndex - 1);
+    if (currentNode && currentNode.parent) {
+      navigateTo(currentNode.parent);
     }
   }
 
   function goForward() {
-    if (currentIndex < history.length - 1) {
-      navigateTo(currentIndex + 1);
+    if (currentNode && currentNode.children.length > 0) {
+      // Go to the last active child, or the first child if none
+      const childIndex = currentNode.activeChildIndex >= 0 ? currentNode.activeChildIndex : 0;
+      navigateTo(currentNode.children[childIndex]);
     }
   }
 
   function updateButtons() {
-    backBtn.disabled = currentIndex <= 0;
-    forwardBtn.disabled = currentIndex >= history.length - 1;
+    backBtn.disabled = !currentNode || !currentNode.parent;
+    forwardBtn.disabled = !currentNode || currentNode.children.length === 0;
   }
 
   function showLoading(show) {
