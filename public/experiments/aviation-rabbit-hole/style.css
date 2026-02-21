@@ -93,37 +93,65 @@ body {
 }
 
 #timeline {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  display: inline-flex;
+  align-items: flex-start;
   min-width: min-content;
 }
 
-/* One row = one path (main or branch) */
-.timeline-row {
+/* Linear segment: node ── connector ── child */
+.tree-linear {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  min-width: min-content;
 }
 
-/* Branch rows are visually quieter than the main path */
-.branch-row {
-  opacity: 0.65;
+/* Fork group: parent node + connector + children column */
+.tree-fork-group {
+  display: flex;
+  align-items: flex-start;
 }
 
-.branch-row:hover {
-  opacity: 0.9;
+/* Push the connector down so it aligns with the parent node's centre */
+.tree-fork-group > .timeline-connector {
+  margin-top: 7px;
 }
 
-/* "↳ From X:" prefix label */
-.branch-from-label {
-  font-size: 0.7rem;
-  font-style: italic;
-  opacity: 0.6;
-  white-space: nowrap;
-  flex-shrink: 0;
-  margin-right: 0.15rem;
+/* Column of branches at a fork */
+.tree-fork-children {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+}
+
+/* Vertical connecting line — runs from centre of first branch to centre of last */
+.tree-fork-children::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;    /* half of ~16px item height */
+  bottom: 8px;
+  width: 2px;
+  background: rgba(15, 76, 129, 0.2);
+  pointer-events: none;
+}
+
+/* One branch: horizontal connector stub + subtree */
+.tree-fork-branch {
+  display: flex;
+  align-items: flex-start;
+  padding-left: 16px;
+  position: relative;
+}
+
+/* Horizontal stub from the vertical line to the branch node */
+.tree-fork-branch::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;   /* align with the node's dot centre */
+  width: 16px;
+  height: 2px;
+  background: rgba(15, 76, 129, 0.2);
 }
 
 .timeline-item {
