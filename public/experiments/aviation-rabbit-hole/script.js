@@ -249,36 +249,13 @@
 
   function renderTimeline() {
     timeline.innerHTML = '';
-
     if (!currentNode) return;
 
-    const path = currentNode.getPath();
+    // Render the full exploration tree from its root
+    let root = currentNode;
+    while (root.parent) root = root.parent;
 
-    // ── Main path row ────────────────────────────────────────
-    const mainRow = document.createElement('div');
-    mainRow.className = 'timeline-row';
-
-    path.forEach((node, index) => {
-      if (index > 0) {
-        const conn = document.createElement('div');
-        conn.className = 'timeline-connector';
-        mainRow.appendChild(conn);
-      }
-      mainRow.appendChild(buildTimelineStep(node, node === currentNode));
-    });
-
-    timeline.appendChild(mainRow);
-
-    // ── Branch rows ──────────────────────────────────────────
-    // For every node on the current path, show off-path children
-    // as individual, always-visible rows — never collapsed into a count.
-    path.forEach((node, index) => {
-      const nextOnPath = path[index + 1]; // child that IS on the active path
-      const offPathChildren = node.children.filter(c => c !== nextOnPath);
-      offPathChildren.forEach(child => {
-        appendBranchRow(timeline, child, node.title, 0);
-      });
-    });
+    timeline.appendChild(renderSubtree(root));
 
     // Scroll active dot into view
     setTimeout(() => {
@@ -290,49 +267,51 @@
   }
 
   /**
-   * Append a branch row to `container` for `branchNode`.
-   * Walks linear single-child chains inline on the same row.
-   * When a fork is hit (2+ children), each child gets its own sub-row.
+   * Recursively builds the tree DOM.
+   *
+   * - Leaf / single child: horizontal linear chain
+   * - Multiple children: node + fork structure with vertical connecting lines
+   *
+   *   [Root] ── [X] ──┬── [W (current)]
+   *                   ├── [Y]
+   *                   └── [Z]
    */
-  function appendBranchRow(container, branchNode, fromTitle, nestLevel) {
-    const row = document.createElement('div');
-    row.className = 'timeline-row branch-row';
-    if (nestLevel > 0) {
-      row.style.paddingLeft = `${nestLevel * 1.5}rem`;
-    }
-
-    const fromLabel = document.createElement('span');
-    fromLabel.className = 'branch-from-label';
-    fromLabel.textContent = `↳ ${fromTitle}:`;
-    row.appendChild(fromLabel);
-
-    // Walk the linear chain until a leaf or fork
-    let curr = branchNode;
-    let first = true;
-    while (true) {
-      if (!first) {
+  function renderSubtree(node) {
+    if (node.children.length <= 1) {
+      const row = document.createElement('div');
+      row.className = 'tree-linear';
+      row.appendChild(buildTimelineStep(node, node === currentNode));
+      if (node.children.length === 1) {
         const conn = document.createElement('div');
         conn.className = 'timeline-connector';
         row.appendChild(conn);
+        row.appendChild(renderSubtree(node.children[0]));
       }
-      first = false;
-      row.appendChild(buildTimelineStep(curr, curr === currentNode));
-
-      if (curr.children.length === 1) {
-        curr = curr.children[0];
-      } else {
-        break;
-      }
+      return row;
     }
 
-    container.appendChild(row);
+    // Fork: node ── connector ── [children column with vertical line]
+    const group = document.createElement('div');
+    group.className = 'tree-fork-group';
 
-    // If the chain ended at a fork, each fork child becomes its own branch row
-    if (curr.children.length > 1) {
-      curr.children.forEach(child => {
-        appendBranchRow(container, child, curr.title, nestLevel + 1);
-      });
-    }
+    group.appendChild(buildTimelineStep(node, node === currentNode));
+
+    const conn = document.createElement('div');
+    conn.className = 'timeline-connector';
+    group.appendChild(conn);
+
+    const childrenCol = document.createElement('div');
+    childrenCol.className = 'tree-fork-children';
+
+    node.children.forEach(child => {
+      const branch = document.createElement('div');
+      branch.className = 'tree-fork-branch';
+      branch.appendChild(renderSubtree(child));
+      childrenCol.appendChild(branch);
+    });
+
+    group.appendChild(childrenCol);
+    return group;
   }
 
   function buildTimelineStep(node, isActive) {
