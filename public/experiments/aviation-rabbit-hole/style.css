@@ -1,0 +1,675 @@
+/* ───────────────────────────────────────
+   Base
+─────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #fff0db;
+  color: #0f4c81;
+  font-size: 16px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ───────────────────────────────────────
+   Start screen
+─────────────────────────────────────── */
+.start-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.start-content {
+  text-align: center;
+  max-width: 380px;
+  animation: fadeUp 0.6s ease both;
+}
+
+.start-icon {
+  margin-bottom: 1.5rem;
+  opacity: 0.85;
+}
+
+.start-content h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  margin-bottom: 0.85rem;
+}
+
+.start-content p {
+  font-size: 1rem;
+  line-height: 1.6;
+  opacity: 0.65;
+  margin-bottom: 2rem;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ───────────────────────────────────────
+   Button — shared base
+─────────────────────────────────────── */
+button {
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+#start-btn {
+  background: #0f4c81;
+  color: #fff0db;
+  border-radius: 6px;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+#start-btn:hover  { opacity: 0.85; transform: scale(1.03); }
+#start-btn:active { transform: scale(0.97); }
+
+/* ───────────────────────────────────────
+   App layout
+─────────────────────────────────────── */
+.app {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ───────────────────────────────────────
+   Sidebar — rabbit hole tree
+─────────────────────────────────────── */
+.tree-panel {
+  width: 260px;
+  flex-shrink: 0;
+  background: rgba(15, 76, 129, 0.04);
+  border-right: 1px solid rgba(15, 76, 129, 0.1);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  transition: transform 0.25s ease;
+}
+
+.tree-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1rem 0.85rem;
+  border-bottom: 1px solid rgba(15, 76, 129, 0.1);
+  flex-shrink: 0;
+}
+
+.tree-panel-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.4;
+}
+
+.icon-btn {
+  background: transparent;
+  color: #0f4c81;
+  opacity: 0.35;
+  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.icon-btn:hover {
+  opacity: 0.7;
+  background: rgba(15, 76, 129, 0.08);
+}
+
+.tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.75rem 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 76, 129, 0.2) transparent;
+}
+
+.tree::-webkit-scrollbar { width: 4px; }
+.tree::-webkit-scrollbar-track { background: transparent; }
+.tree::-webkit-scrollbar-thumb { background: rgba(15, 76, 129, 0.2); border-radius: 2px; }
+
+/* Tree nodes */
+.tree-node {
+  position: relative;
+}
+
+.tree-node-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  color: rgba(15, 76, 129, 0.4);
+  font-size: 0.82rem;
+  line-height: 1.35;
+  user-select: none;
+}
+
+.tree-node-label:hover {
+  background: rgba(15, 76, 129, 0.07);
+  color: rgba(15, 76, 129, 0.75);
+}
+
+.tree-node.on-path > .tree-node-label {
+  color: rgba(15, 76, 129, 0.65);
+}
+
+.tree-node.current > .tree-node-label {
+  color: #0f4c81;
+  font-weight: 600;
+  background: rgba(15, 76, 129, 0.1);
+}
+
+/* Node dot indicator */
+.tree-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(15, 76, 129, 0.25);
+  background: transparent;
+  margin-top: 0.28rem; /* align with first line of text */
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.tree-node.on-path > .tree-node-label .tree-dot {
+  border-color: rgba(15, 76, 129, 0.5);
+}
+
+.tree-node.current > .tree-node-label .tree-dot {
+  border-color: #0f4c81;
+  background: #0f4c81;
+}
+
+.tree-label-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Children: indent + connecting line */
+.tree-children {
+  margin-left: 0.85rem;
+  padding-left: 0.75rem;
+  border-left: 1.5px solid rgba(15, 76, 129, 0.12);
+  margin-top: 1px;
+  margin-bottom: 2px;
+}
+
+/* Branch siblings get a subtle separator */
+.tree-children > .tree-node + .tree-node {
+  margin-top: 1px;
+}
+
+/* Branches (siblings at the same level from same parent) */
+.tree-children > .tree-node:not(:last-child)::after {
+  content: '';
+  display: block;
+  height: 0;
+}
+
+/* Mobile backdrop */
+.tree-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 76, 129, 0.15);
+  z-index: 10;
+  backdrop-filter: blur(1px);
+}
+
+/* ───────────────────────────────────────
+   Content area
+─────────────────────────────────────── */
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 1.5rem;
+  border-bottom: 1px solid rgba(15, 76, 129, 0.1);
+  flex-shrink: 0;
+  gap: 1rem;
+}
+
+.tree-toggle-btn {
+  display: none; /* hidden on desktop, shown on mobile */
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  color: #0f4c81;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+}
+
+.tree-toggle-btn:hover {
+  background: rgba(15, 76, 129, 0.08);
+}
+
+.depth-badge {
+  background: #0f4c81;
+  color: #fff0db;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 0.05em 0.45em;
+  line-height: 1.4;
+}
+
+.new-dive-btn {
+  background: transparent;
+  color: rgba(15, 76, 129, 0.5);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(15, 76, 129, 0.2);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.new-dive-btn:hover {
+  color: #0f4c81;
+  border-color: rgba(15, 76, 129, 0.4);
+  background: rgba(15, 76, 129, 0.05);
+}
+
+/* ───────────────────────────────────────
+   State views: loading & error
+─────────────────────────────────────── */
+.state-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: rgba(15, 76, 129, 0.5);
+  padding: 2rem;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 6px;
+}
+
+.loading-dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(15, 76, 129, 0.4);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+.loading-dots span:nth-child(2) { animation-delay: 0.2s; }
+.loading-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes pulse {
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+  40%            { transform: scale(1);   opacity: 1; }
+}
+
+.loading-state p,
+.error-state p {
+  font-size: 0.9rem;
+}
+
+.error-state button {
+  margin-top: 0.25rem;
+  background: #0f4c81;
+  color: #fff0db;
+  border-radius: 6px;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: opacity 0.15s ease;
+}
+.error-state button:hover { opacity: 0.8; }
+
+/* ───────────────────────────────────────
+   Article
+─────────────────────────────────────── */
+.article-wrapper {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.75rem 2rem 4rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 76, 129, 0.15) transparent;
+  animation: fadeUp 0.35s ease both;
+}
+
+.article-wrapper::-webkit-scrollbar { width: 5px; }
+.article-wrapper::-webkit-scrollbar-track { background: transparent; }
+.article-wrapper::-webkit-scrollbar-thumb { background: rgba(15, 76, 129, 0.15); border-radius: 3px; }
+
+.article-meta {
+  margin-bottom: 0.75rem;
+}
+
+.wiki-source-link {
+  font-size: 0.75rem;
+  color: rgba(15, 76, 129, 0.4);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.wiki-source-link:hover { color: rgba(15, 76, 129, 0.75); }
+
+.article-title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin-bottom: 1.5rem;
+  color: #0f4c81;
+}
+
+/* ───────────────────────────────────────
+   Wikipedia content overrides
+─────────────────────────────────────── */
+.wiki-content {
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: rgba(15, 76, 129, 0.85);
+  max-width: 720px;
+}
+
+.wiki-content a {
+  color: #0f4c81;
+  text-decoration: underline;
+  text-decoration-color: rgba(15, 76, 129, 0.35);
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: text-decoration-color 0.15s ease;
+}
+
+.wiki-content a:hover {
+  text-decoration-color: #0f4c81;
+}
+
+/* Links that will trigger rabbit hole are highlighted on hover with a subtle indicator */
+.wiki-content a.wiki-link:hover {
+  background: rgba(15, 76, 129, 0.07);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.wiki-content a.blocked-link {
+  color: rgba(15, 76, 129, 0.4);
+  text-decoration: none;
+  cursor: default;
+  pointer-events: none;
+}
+
+.wiki-content h2,
+.wiki-content h3,
+.wiki-content h4 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 1.5rem 0 0.5rem;
+  color: #0f4c81;
+  line-height: 1.25;
+}
+
+.wiki-content h2 { font-size: 1.3rem; border-bottom: 1px solid rgba(15, 76, 129, 0.1); padding-bottom: 0.35rem; margin-top: 2rem; }
+.wiki-content h3 { font-size: 1.1rem; }
+.wiki-content h4 { font-size: 0.95rem; }
+
+.wiki-content p {
+  margin: 0.7rem 0;
+}
+
+.wiki-content ul,
+.wiki-content ol {
+  margin: 0.5rem 0 0.5rem 1.5rem;
+}
+
+.wiki-content li {
+  margin: 0.25rem 0;
+}
+
+.wiki-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  opacity: 0.9;
+}
+
+/* Infobox */
+.wiki-content table.infobox {
+  float: right;
+  clear: right;
+  margin: 0 0 1rem 1.5rem;
+  font-size: 0.8rem;
+  border-collapse: collapse;
+  border: 1px solid rgba(15, 76, 129, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  max-width: 260px;
+  background: rgba(15, 76, 129, 0.03);
+  line-height: 1.4;
+}
+
+.wiki-content table.infobox th,
+.wiki-content table.infobox td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid rgba(15, 76, 129, 0.08);
+  vertical-align: top;
+}
+
+.wiki-content table.infobox th {
+  font-weight: 600;
+  white-space: nowrap;
+  color: rgba(15, 76, 129, 0.6);
+}
+
+.wiki-content table.infobox caption {
+  font-weight: 700;
+  padding: 0.5rem;
+  background: rgba(15, 76, 129, 0.06);
+  text-align: center;
+}
+
+/* Other tables */
+.wiki-content table:not(.infobox) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+  display: block;
+}
+
+.wiki-content table:not(.infobox) th,
+.wiki-content table:not(.infobox) td {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid rgba(15, 76, 129, 0.12);
+}
+
+.wiki-content table:not(.infobox) th {
+  background: rgba(15, 76, 129, 0.05);
+  font-weight: 600;
+}
+
+/* Figures and images */
+.wiki-content .thumb,
+.wiki-content figure {
+  float: right;
+  clear: right;
+  margin: 0 0 1rem 1.5rem;
+  max-width: 240px;
+  font-size: 0.8rem;
+  color: rgba(15, 76, 129, 0.5);
+}
+
+.wiki-content .thumbcaption,
+.wiki-content figcaption {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgba(15, 76, 129, 0.5);
+}
+
+/* Footnote markers */
+.wiki-content sup.reference a {
+  font-size: 0.7rem;
+  text-decoration: none;
+  color: rgba(15, 76, 129, 0.5);
+}
+
+/* Reference list */
+.wiki-content .references {
+  font-size: 0.8rem;
+  color: rgba(15, 76, 129, 0.55);
+  columns: 2;
+  column-gap: 1.5rem;
+}
+
+.wiki-content .references li {
+  break-inside: avoid;
+  margin: 0.2rem 0;
+}
+
+/* Hatnote (disambiguation notices) */
+.wiki-content .hatnote {
+  font-style: italic;
+  color: rgba(15, 76, 129, 0.5);
+  border-left: 2px solid rgba(15, 76, 129, 0.2);
+  padding-left: 0.75rem;
+  margin: 0.75rem 0;
+  font-size: 0.88rem;
+}
+
+/* Hide wiki-specific chrome */
+.wiki-content .mw-editsection,
+.wiki-content .navbox,
+.wiki-content .navbox-inner,
+.wiki-content .catlinks,
+.wiki-content #toc,
+.wiki-content .toc,
+.wiki-content .mbox,
+.wiki-content .mbox-small,
+.wiki-content .sistersitebox,
+.wiki-content .plainlinks.hlist,
+.wiki-content .ambox,
+.wiki-content table.plainlinks {
+  display: none !important;
+}
+
+/* ───────────────────────────────────────
+   Responsive — mobile (≤ 600px)
+─────────────────────────────────────── */
+@media (max-width: 600px) {
+  /* Hide sidebar by default on mobile */
+  .tree-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 20;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(15, 76, 129, 0.12);
+    background: #fff0db;
+  }
+
+  .tree-panel.open {
+    transform: translateX(0);
+  }
+
+  .tree-backdrop {
+    display: block;
+  }
+
+  /* Show toggle button */
+  .tree-toggle-btn {
+    display: flex;
+  }
+
+  .content-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .article-wrapper {
+    padding: 1.25rem 1rem 3rem;
+  }
+
+  .article-title {
+    font-size: 1.5rem;
+  }
+
+  .wiki-content {
+    font-size: 0.9rem;
+  }
+
+  .wiki-content table.infobox,
+  .wiki-content .thumb,
+  .wiki-content figure {
+    float: none;
+    clear: both;
+    margin: 0.75rem auto;
+    max-width: 100%;
+  }
+
+  .wiki-content .references {
+    columns: 1;
+  }
+
+  .article-title { font-size: 1.4rem; }
+  .start-content h1 { font-size: 1.75rem; }
+}
+
+/* On desktop, always show the sidebar; hide toggle button */
+@media (min-width: 601px) {
+  .tree-toggle-btn {
+    display: none;
+  }
+
+  #tree-close {
+    display: none;
+  }
+}

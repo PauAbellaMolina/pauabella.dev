@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aviation Rabbit Hole</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Start screen -->
+  <div id="start-screen" class="start-screen">
+    <div class="start-content">
+      <div class="start-icon" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="64" height="64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 36 L28 28 L36 8 L40 8 L36 28 L56 24 L58 28 L40 36 L44 52 L40 52 L32 40 L16 44 Z" fill="#0f4c81" opacity="0.9"/>
+        </svg>
+      </div>
+      <h1>Aviation Rabbit Hole</h1>
+      <p>Start with a random aviation article. Follow the links wherever curiosity takes you — every click opens a new thread in your exploration tree.</p>
+      <button id="start-btn">Begin the dive</button>
+    </div>
+  </div>
+
+  <!-- Main app -->
+  <div id="app" class="app hidden">
+
+    <!-- Sidebar: rabbit hole tree -->
+    <aside id="tree-panel" class="tree-panel" aria-label="Exploration history">
+      <div class="tree-panel-header">
+        <span class="tree-panel-title">Rabbit hole</span>
+        <button id="tree-close" class="icon-btn" aria-label="Close history">
+          <svg viewBox="0 0 16 16" width="16" height="16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div id="tree" class="tree" role="tree"></div>
+    </aside>
+
+    <!-- Overlay backdrop (mobile) -->
+    <div id="tree-backdrop" class="tree-backdrop hidden"></div>
+
+    <!-- Content area -->
+    <div class="content-area">
+      <header class="content-header">
+        <button id="tree-toggle" class="tree-toggle-btn" aria-label="Show rabbit hole history">
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none">
+            <circle cx="5" cy="5" r="2" fill="currentColor"/>
+            <circle cx="5" cy="10" r="2" fill="currentColor"/>
+            <circle cx="5" cy="15" r="2" fill="currentColor"/>
+            <line x1="9" y1="5" x2="18" y2="5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+            <line x1="9" y1="10" x2="18" y2="10" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+            <line x1="9" y1="15" x2="14" y2="15" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+          </svg>
+          <span>Rabbit hole</span>
+          <span id="depth-badge" class="depth-badge" aria-label="Depth">1</span>
+        </button>
+        <button id="new-dive-btn" class="new-dive-btn" title="Start a new dive with a random article">
+          New dive ✈
+        </button>
+      </header>
+
+      <div id="loading-state" class="state-view loading-state hidden" aria-live="polite">
+        <div class="loading-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p>Fetching article…</p>
+      </div>
+
+      <div id="error-state" class="state-view error-state hidden" aria-live="polite">
+        <p id="error-message">Couldn't load this article.</p>
+        <button id="error-back-btn">← Go back</button>
+      </div>
+
+      <article id="article-wrapper" class="article-wrapper hidden">
+        <div class="article-meta">
+          <a id="article-wiki-link" href="#" target="_blank" rel="noopener noreferrer" class="wiki-source-link">View on Wikipedia ↗</a>
+        </div>
+        <h2 id="article-title" class="article-title"></h2>
+        <div id="article-content" class="article-content wiki-content"></div>
+      </article>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
