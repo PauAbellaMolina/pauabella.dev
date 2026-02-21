@@ -254,116 +254,104 @@
 
     const path = currentNode.getPath();
 
+    // ── Main path row ────────────────────────────────────────
+    const mainRow = document.createElement('div');
+    mainRow.className = 'timeline-row';
+
     path.forEach((node, index) => {
-      const item = document.createElement('div');
-      item.className = 'timeline-item';
-
-      // Add connector before (except first item)
       if (index > 0) {
-        const connector = document.createElement('div');
-        connector.className = 'timeline-connector';
-        item.appendChild(connector);
+        const conn = document.createElement('div');
+        conn.className = 'timeline-connector';
+        mainRow.appendChild(conn);
       }
-
-      // Dot container (for branch indicator)
-      const dotContainer = document.createElement('div');
-      dotContainer.className = 'timeline-dot-container';
-
-      // Dot
-      const dot = document.createElement('div');
-      dot.className = 'timeline-dot';
-      if (node === currentNode) {
-        dot.classList.add('active');
-      } else {
-        dot.classList.add('visited');
-      }
-      dot.addEventListener('click', () => navigateTo(node));
-      dotContainer.appendChild(dot);
-
-      // Branch indicator if this node has multiple children
-      if (node.hasMultipleChildren()) {
-        const branchIndicator = document.createElement('div');
-        branchIndicator.className = 'branch-indicator';
-        branchIndicator.textContent = node.children.length;
-        branchIndicator.title = `${node.children.length} branches from here`;
-        branchIndicator.addEventListener('click', (e) => {
-          e.stopPropagation();
-          showBranchPicker(node, branchIndicator);
-        });
-        dotContainer.appendChild(branchIndicator);
-      }
-
-      item.appendChild(dotContainer);
-
-      // Label
-      const label = document.createElement('span');
-      label.className = 'timeline-label';
-      if (node === currentNode) {
-        label.classList.add('active');
-      }
-      label.textContent = node.title;
-      label.title = node.title;
-      label.addEventListener('click', () => navigateTo(node));
-      item.appendChild(label);
-
-      timeline.appendChild(item);
+      mainRow.appendChild(buildTimelineStep(node, node === currentNode));
     });
 
-    // Scroll timeline to show current item
+    timeline.appendChild(mainRow);
+
+    // ── Branch rows ──────────────────────────────────────────
+    // For every node on the current path, show off-path children
+    // as individual, always-visible rows — never collapsed into a count.
+    path.forEach((node, index) => {
+      const nextOnPath = path[index + 1]; // child that IS on the active path
+      const offPathChildren = node.children.filter(c => c !== nextOnPath);
+      offPathChildren.forEach(child => {
+        appendBranchRow(timeline, child, node.title, 0);
+      });
+    });
+
+    // Scroll active dot into view
     setTimeout(() => {
-      const activeItem = timeline.querySelector('.timeline-dot.active');
-      if (activeItem) {
-        activeItem.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      const activeDot = timeline.querySelector('.timeline-dot.active');
+      if (activeDot) {
+        activeDot.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
       }
     }, 100);
   }
 
-  function showBranchPicker(node, anchorElement) {
-    // Remove any existing picker
-    const existingPicker = document.querySelector('.branch-picker');
-    if (existingPicker) {
-      existingPicker.remove();
+  /**
+   * Append a branch row to `container` for `branchNode`.
+   * Walks linear single-child chains inline on the same row.
+   * When a fork is hit (2+ children), each child gets its own sub-row.
+   */
+  function appendBranchRow(container, branchNode, fromTitle, nestLevel) {
+    const row = document.createElement('div');
+    row.className = 'timeline-row branch-row';
+    if (nestLevel > 0) {
+      row.style.paddingLeft = `${nestLevel * 1.5}rem`;
     }
 
-    const picker = document.createElement('div');
-    picker.className = 'branch-picker';
+    const fromLabel = document.createElement('span');
+    fromLabel.className = 'branch-from-label';
+    fromLabel.textContent = `↳ ${fromTitle}:`;
+    row.appendChild(fromLabel);
 
-    const header = document.createElement('div');
-    header.className = 'branch-picker-header';
-    header.textContent = 'Choose a branch:';
-    picker.appendChild(header);
-
-    node.children.forEach((child, index) => {
-      const option = document.createElement('div');
-      option.className = 'branch-option';
-      if (index === node.activeChildIndex) {
-        option.classList.add('active');
+    // Walk the linear chain until a leaf or fork
+    let curr = branchNode;
+    let first = true;
+    while (true) {
+      if (!first) {
+        const conn = document.createElement('div');
+        conn.className = 'timeline-connector';
+        row.appendChild(conn);
       }
-      option.textContent = child.title;
-      option.addEventListener('click', () => {
-        node.activeChildIndex = index;
-        navigateTo(child);
-        picker.remove();
+      first = false;
+      row.appendChild(buildTimelineStep(curr, curr === currentNode));
+
+      if (curr.children.length === 1) {
+        curr = curr.children[0];
+      } else {
+        break;
+      }
+    }
+
+    container.appendChild(row);
+
+    // If the chain ended at a fork, each fork child becomes its own branch row
+    if (curr.children.length > 1) {
+      curr.children.forEach(child => {
+        appendBranchRow(container, child, curr.title, nestLevel + 1);
       });
-      picker.appendChild(option);
-    });
+    }
+  }
 
-    // Position the picker
-    const rect = anchorElement.getBoundingClientRect();
-    picker.style.position = 'fixed';
-    picker.style.top = `${rect.bottom + 8}px`;
-    picker.style.left = `${rect.left - 100}px`;
+  function buildTimelineStep(node, isActive) {
+    const item = document.createElement('div');
+    item.className = 'timeline-item';
 
-    document.body.appendChild(picker);
+    const dot = document.createElement('div');
+    dot.className = `timeline-dot ${isActive ? 'active' : 'visited'}`;
+    dot.addEventListener('click', () => navigateTo(node));
+    item.appendChild(dot);
 
-    // Close picker when clicking outside
-    const closeHandler = (e) => {
-      if (!picker.contains(e.target) && e.target !== anchorElement) {
-        picker.remove();
-        document.removeEventListener('click', closeHandler);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    const label = document.createElement('span');
+    label.className = `timeline-label${isActive ? ' active' : ''}`;
+    label.textContent = node.title;
+    label.title = node.title;
+    label.addEventListener('click', () => navigateTo(node));
+    item.appendChild(label);
+
+    return item;
   }
 
   function navigateTo(node) {
