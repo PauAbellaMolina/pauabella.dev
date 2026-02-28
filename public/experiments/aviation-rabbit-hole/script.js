@@ -257,6 +257,9 @@
 
     timeline.appendChild(renderSubtree(root));
 
+    // Correct vertical line endpoints for variable-height branches
+    fixForkLines();
+
     // Scroll active dot into view
     setTimeout(() => {
       const activeDot = timeline.querySelector('.timeline-dot.active');
@@ -312,6 +315,29 @@
 
     group.appendChild(childrenCol);
     return group;
+  }
+
+  /**
+   * After the tree is in the DOM, fix the bottom of each fork's vertical line.
+   *
+   * The CSS fallback (bottom: 10px) is only accurate when all sibling branches
+   * have equal height. When the last branch is itself a nested fork — and
+   * therefore taller than a single node — the line would overshoot into the
+   * sub-fork area. This function measures the real offset and sets
+   * --fork-line-bottom precisely so the line ends exactly at the last
+   * branch's node centre (always 10px from the branch's own top).
+   */
+  function fixForkLines() {
+    timeline.querySelectorAll('.tree-fork-children').forEach(col => {
+      const branches = col.querySelectorAll(':scope > .tree-fork-branch');
+      if (branches.length < 2) return;
+      const lastBranch = branches[branches.length - 1];
+      // lastBranch.offsetTop: distance from col's top to last branch's top.
+      // Node centre inside the branch is always 10px from the branch's top.
+      // bottom = how far the line's endpoint is from the col's bottom edge.
+      const bottom = col.offsetHeight - lastBranch.offsetTop - 10;
+      col.style.setProperty('--fork-line-bottom', Math.max(bottom, 0) + 'px');
+    });
   }
 
   function buildTimelineStep(node, isActive) {
