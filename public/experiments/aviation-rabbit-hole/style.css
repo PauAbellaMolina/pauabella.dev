@@ -110,9 +110,10 @@ body {
   align-items: flex-start;
 }
 
-/* Push the connector down so it aligns with the parent node's centre */
+/* Push the connector down so it aligns with the parent node's centre.
+   .timeline-item is 20px tall → centre = 10px. Connector is 2px → margin = 10 - 1 = 9px. */
 .tree-fork-group > .timeline-connector {
-  margin-top: 7px;
+  margin-top: 9px;
 }
 
 /* Column of branches at a fork */
@@ -123,13 +124,16 @@ body {
   position: relative;
 }
 
-/* Vertical connecting line — runs from centre of first branch to centre of last */
+/* Vertical connecting line.
+   Starts at centre of first branch's node (top: 10px).
+   Ends at centre of last branch's node: set precisely by fixForkLines() via
+   --fork-line-bottom; falls back to 10px (correct when all branches are equal height). */
 .tree-fork-children::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 8px;    /* half of ~16px item height */
-  bottom: 8px;
+  top: 10px;
+  bottom: var(--fork-line-bottom, 10px);
   width: 2px;
   background: rgba(15, 76, 129, 0.2);
   pointer-events: none;
@@ -143,18 +147,20 @@ body {
   position: relative;
 }
 
-/* Horizontal stub from the vertical line to the branch node */
+/* Horizontal stub from the vertical line to the branch node.
+   top: 10px = centre of the node sitting at the top of the branch. */
 .tree-fork-branch::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 8px;   /* align with the node's dot centre */
+  top: 10px;
   width: 16px;
   height: 2px;
   background: rgba(15, 76, 129, 0.2);
 }
 
 .timeline-item {
+  height: 20px; /* explicit height so node centre is always exactly 10px */
   display: flex;
   align-items: center;
   gap: 0.5rem;
