@@ -21,6 +21,14 @@ export interface Experiment {
 
 const experiments: Experiment[] = [
   {
+    id: 'photobooth',
+    title: 'Photobooth',
+    description: 'Strike a pose. Four frames, one strip — printed right in your browser.',
+    path: '/experiments/photobooth/index.html',
+    displayMode: 'fullscreen',
+    thumbnail: null,
+  },
+  {
     id: 'keepers-isle',
     title: "Keeper's Isle",
     description: 'Explore a tiny island as its lighthouse keeper. An isometric world to wander.',

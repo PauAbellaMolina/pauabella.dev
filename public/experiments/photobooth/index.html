@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Photobooth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Start screen -->
+  <div id="screen-start" class="screen active">
+    <h1>photobooth</h1>
+    <p>four frames · one strip</p>
+    <button id="btn-start">step in</button>
+  </div>
+
+  <!-- Camera screen -->
+  <div id="screen-camera" class="screen">
+
+    <!-- Only visible during shooting -->
+    <div class="progress-dots" id="progress-dots">
+      <span class="dot" id="dot-0"></span>
+      <span class="dot" id="dot-1"></span>
+      <span class="dot" id="dot-2"></span>
+      <span class="dot" id="dot-3"></span>
+    </div>
+
+    <div class="camera-frame">
+      <video id="video" autoplay playsinline muted></video>
+      <img id="photo-preview" class="photo-preview" alt="" src="">
+      <div id="flash" class="flash"></div>
+      <div id="countdown" class="countdown"></div>
+    </div>
+
+    <!-- Pre-shoot pickers: filter + frame -->
+    <div id="pickers" class="pickers">
+      <div class="picker-group">
+        <span class="picker-label">filter</span>
+        <div class="picker-row" id="filter-picker"></div>
+      </div>
+      <div class="picker-group">
+        <span class="picker-label">frame</span>
+        <div class="picker-row" id="frame-picker"></div>
+      </div>
+    </div>
+
+    <p id="camera-status" class="camera-status">ready when you are</p>
+    <button id="btn-go">go</button>
+  </div>
+
+  <!-- Strip screen -->
+  <div id="screen-strip" class="screen">
+    <p id="strip-label" class="strip-label">&nbsp;</p>
+    <div id="strip-wrapper">
+      <canvas id="strip-canvas"></canvas>
+    </div>
+    <div id="strip-actions" class="strip-actions">
+      <button id="btn-download">save strip</button>
+      <button id="btn-again" class="btn-ghost">again</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
