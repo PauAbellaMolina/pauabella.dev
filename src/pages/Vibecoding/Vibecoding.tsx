@@ -49,7 +49,7 @@ function Vibecoding() {
   };
 
   return (
-    <div className="App" style={{backgroundColor: colorPalette.background, color: colorPalette.text}}>
+    <div className="App" style={{ backgroundColor: colorPalette.background, color: colorPalette.text }}>
       <PauAvatar className="pauAvatarSvg" onClick={setNewRandomColorPalette} />
       <div className="centered-header">
         <h1>Vibecoding Experiments</h1>
@@ -66,15 +66,6 @@ function Vibecoding() {
                 onClick={() => handleExperimentClick(experiment)}
                 style={{ borderColor: colorPalette.text }}
               >
-                {experiment.thumbnail ? (
-                  <img
-                    src={experiment.thumbnail}
-                    alt={experiment.title}
-                    className="experiment-thumbnail"
-                  />
-                ) : (
-                  <div className="experiment-thumbnail-placeholder" />
-                )}
                 <div className="experiment-info">
                   <h3>{experiment.title}</h3>
                   <p>{experiment.description}</p>

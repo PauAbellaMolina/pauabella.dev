@@ -1,0 +1,397 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #fff0db;
+  color: #0f4c81;
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+/* ── Screens ── */
+
+.screen {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  width: 100%;
+  max-width: 480px;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.screen.active {
+  display: flex;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Start screen ── */
+
+#screen-start h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+#screen-start p {
+  font-size: 1rem;
+  font-weight: 500;
+  opacity: 0.5;
+  margin-top: -0.25rem;
+}
+
+/* ── Buttons ── */
+
+button {
+  background: #0f4c81;
+  color: #fff0db;
+  border: none;
+  border-radius: 6px;
+  padding: 0.75rem 2rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+button:hover {
+  transform: scale(1.03);
+  opacity: 0.88;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #0f4c81;
+  border: 1.5px solid rgba(15, 76, 129, 0.28);
+  padding: 0.7rem 1.75rem;
+}
+
+.btn-ghost:hover {
+  border-color: rgba(15, 76, 129, 0.55);
+  opacity: 1;
+}
+
+/* ── Progress dots ── */
+
+.progress-dots {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  min-height: 8px; /* reserve space so layout doesn't shift */
+}
+
+.progress-dots.visible {
+  opacity: 1;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(15, 76, 129, 0.18);
+  transition: background 0.35s ease, transform 0.35s ease;
+}
+
+.dot.filled {
+  background: #0f4c81;
+  transform: scale(1.15);
+}
+
+/* ── Camera frame ── */
+
+.camera-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 6px;
+  background: rgba(15, 76, 129, 0.08);
+}
+
+#video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  display: block;
+  transition: filter 0.2s ease;
+}
+
+/* ── Photo preview overlay ── */
+
+.photo-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease;
+}
+
+/* ── Flash ── */
+
+.flash {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Countdown ── */
+
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 6rem;
+  font-weight: 800;
+  color: #fff0db;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.countdown.visible {
+  opacity: 1;
+  background: rgba(15, 76, 129, 0.22);
+}
+
+.countdown .num {
+  display: block;
+  animation: countPop 0.9s ease-out forwards;
+}
+
+@keyframes countPop {
+  0%   { transform: scale(1.4); opacity: 0; }
+  18%  { transform: scale(1);   opacity: 1; }
+  72%  { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
+/* ── Camera status ── */
+
+.camera-status {
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0.5;
+  text-align: center;
+  min-height: 1.35em;
+  transition: opacity 0.2s ease;
+}
+
+/* ── Pickers ── */
+
+.pickers {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  transition: opacity 0.25s ease;
+}
+
+.pickers.hidden {
+  display: none;
+}
+
+.picker-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.picker-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  opacity: 0.38;
+}
+
+.picker-row {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+/* Filter chips — text pills */
+
+.filter-pick {
+  background: transparent;
+  color: rgba(15, 76, 129, 0.65);
+  border: 1.5px solid rgba(15, 76, 129, 0.2);
+  border-radius: 20px;
+  padding: 0.28rem 0.75rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  /* override global button scale */
+  transform: none;
+}
+
+.filter-pick:hover {
+  border-color: rgba(15, 76, 129, 0.45);
+  color: #0f4c81;
+  transform: none;
+  opacity: 1;
+}
+
+.filter-pick.active {
+  background: #0f4c81;
+  color: #fff0db;
+  border-color: #0f4c81;
+}
+
+.filter-pick:active {
+  transform: scale(0.96);
+}
+
+/* Frame swatches — visual squares + label */
+
+.frame-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.frame-pick:hover {
+  transform: none;
+  opacity: 0.85;
+}
+
+.frame-pick:active {
+  transform: scale(0.95);
+  opacity: 1;
+}
+
+.frame-swatch {
+  width: 38px;
+  height: 38px;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  transition: border-color 0.15s ease;
+  display: block;
+}
+
+.frame-pick.active .frame-swatch {
+  border-color: #0f4c81;
+}
+
+.frame-name {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(15, 76, 129, 0.5);
+  transition: color 0.15s ease;
+}
+
+.frame-pick.active .frame-name {
+  color: #0f4c81;
+}
+
+/* ── Strip screen ── */
+
+.strip-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  opacity: 0.5;
+  letter-spacing: 0.01em;
+  min-height: 1.4em;
+  text-align: center;
+}
+
+#strip-wrapper {
+  border-radius: 2px;
+  box-shadow: 0 6px 28px rgba(15, 76, 129, 0.13);
+  overflow: hidden;
+  line-height: 0;
+  background: #ffffff;
+}
+
+#strip-canvas {
+  display: block;
+  clip-path: inset(0 0 100% 0);
+}
+
+#strip-canvas.reveal {
+  animation: stripReveal 2.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+@keyframes stripReveal {
+  0%   { clip-path: inset(0 0 100% 0); }
+  100% { clip-path: inset(0 0 0%   0); }
+}
+
+.strip-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.strip-actions.visible {
+  opacity: 1;
+}
+
+/* ── Mobile ── */
+
+@media (max-width: 600px) {
+  body {
+    padding: 1rem;
+    align-items: flex-start;
+    padding-top: 1.5rem;
+  }
+
+  #screen-start h1 {
+    font-size: 2.25rem;
+  }
+
+  button {
+    padding: 0.75rem 1.5rem;
+    min-height: 44px;
+  }
+
+  .btn-ghost {
+    min-height: 44px;
+  }
+
+  .filter-pick {
+    min-height: 36px;
+  }
+
+  .frame-swatch {
+    width: 44px;
+    height: 44px;
+  }
+}
