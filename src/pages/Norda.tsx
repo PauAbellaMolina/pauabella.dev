@@ -1,43 +1,13 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../assets/css/fonts.css';
 import '../App.css';
-import { useState } from 'react';
-import { ReactComponent as PauAvatar } from '../assets/svg/pauavatar.svg';
-
-interface ColorPalette {
-  text: string;
-  background: string;
-}
 
 function Norda() {
-  const defaultColorPalette: ColorPalette = {
-    text: `#7958CE`,
-    background: `transparent`
-  };
-  const [colorPalette, setColorPalette] = useState<ColorPalette>(defaultColorPalette);
-
-  const setNewRandomColorPalette = () => {
-    const randomColorPalette: ColorPalette = {
-      text: getRandomColor(),
-      background: getRandomColor()
-    };
-    setColorPalette(randomColorPalette);
-  };
-
-  const getRandomColor = () => {
-    const r = generateRandomRGB();
-    const g = generateRandomRGB();
-    const b = generateRandomRGB();
-    return `rgb(${r}, ${g}, ${b})`;
-  };
-
-  const generateRandomRGB = () => {
-    return Math.floor(Math.random() * 256);
-  }
+  const navigate = useNavigate();
 
   return (
-    <div className="App" style={{backgroundColor: colorPalette.background, color: colorPalette.text}}>
-      <PauAvatar className="pauAvatarSvg" onClick={setNewRandomColorPalette} />
+    <div className="App">
+      <h2 className="floating-navigation" onClick={() => navigate('/')}>Pau Abella</h2>
       <div className="header">
         <h1>Norda Tickets</h1>
         <div className="contactPlaces">
@@ -49,7 +19,7 @@ function Norda() {
       </div>
       <div className='content'>
         <span>
-          <p>Check it out <Link className="link" to="https://nordatickets.com">here</Link></p>
+          <p>Check it out <Link className="link" target="_blank" to="https://nordatickets.com">here</Link></p>
         </span>
         <span>
           <p>Boosting event revenues by digitising the sale and management of tickets, drinks and consumables at concerts and festivals.</p>

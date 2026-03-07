@@ -8,13 +8,13 @@
   left: 0;
   right: 0;
   bottom: 0;
-  transition: background-color .2s ease-in-out;
+  transition: background-color 0.2s ease-in-out;
 }
 
 .page-content {
   position: relative;
   z-index: 1;
-  animation: fadeIn .8s ease-in-out;
+  animation: fadeIn 0.8s ease-in-out;
   height: 100%;
   overflow-y: scroll;
 }
@@ -24,7 +24,7 @@
 }
 
 .norda .page-background {
-  background-color: #EEE7FF;
+  background-color: #eee7ff;
 }
 
 .bikepack .page-background {
@@ -55,6 +55,7 @@
   flex-flow: column;
   justify-content: space-between;
   transition: all 0.4s ease-in-out;
+  color: #0f4c81;
 }
 
 .App ::selection {
@@ -72,10 +73,16 @@
   cursor: pointer;
 }
 
+.floating-navigation {
+  position: absolute;
+  left: 20px;
+  cursor: pointer;
+}
+
 .norda .App ::selection {
-  background-color: #7958CE;
-  color: #EEE7FF;
-  -webkit-text-fill-color: #EEE7FF;
+  background-color: #7958ce;
+  color: #eee7ff;
+  -webkit-text-fill-color: #eee7ff;
 }
 
 .bikepack .App {
@@ -119,7 +126,7 @@
 }
 
 h1 {
-  font-family: 'TASA Orbiter';
+  font-family: "TASA Orbiter";
   font-size: 7rem;
   margin: 0;
   font-weight: 900;
@@ -143,14 +150,14 @@ h1 {
   -webkit-text-fill-color: transparent;
 } */
 p {
-  font-family: 'Valverde';
+  font-family: "Valverde";
   font-size: 2.4vw;
   margin: 0;
 }
 a {
   color: inherit;
   text-decoration: inherit;
-  transition: all .1s ease-in-out;
+  transition: all 0.1s ease-in-out;
   width: max-content;
 }
 a:hover {
@@ -204,25 +211,25 @@ a:hover {
 }
 
 .contactPlaces {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-weight: 800;
   text-align: end;
   display: flex;
   flex-flow: column;
-  gap: .5rem;
+  gap: 0.5rem;
   align-items: flex-end;
 }
 
 .link {
   text-decoration: underline;
-  transition: transform .1s ease-in-out;
+  transition: transform 0.1s ease-in-out;
   display: inline-block;
 }
 .link:hover {
   transform: skewX(-15deg);
 }
 
-@media (max-width:600px) {
+@media (max-width: 600px) {
   .pauAvatarSvg {
     width: 80px;
     height: 80px;
@@ -250,13 +257,13 @@ a:hover {
   }
   .header {
     padding: 3.5rem 1rem 0 1rem;
-    gap: .35rem;
+    gap: 0.35rem;
   }
   .content {
-    padding: 0 1rem .8rem;
+    padding: 0 1rem 0.8rem;
   }
   .contactPlaces {
-    gap: .35rem;
+    gap: 0.35rem;
   }
   .sparse-grid-content Img {
     width: 80dvw;
