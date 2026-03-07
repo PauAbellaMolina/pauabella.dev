@@ -13,19 +13,24 @@
   <div class="app" id="app">
     <header class="header">
       <div class="title">code<span class="title-dim">synth</span></div>
-      <div class="header-right">
-        <div class="mode-toggle">
-          <button class="mode-opt active" id="mode-code">code</button>
-          <button class="mode-opt" id="mode-ui">ui</button>
+      <div class="header-controls">
+        <div class="toggle-group" id="repr-toggle">
+          <button class="tog active" id="mode-code">code</button>
+          <button class="tog" id="mode-ui">ui</button>
+        </div>
+        <div class="toggle-group" id="view-toggle">
+          <button class="tog active" id="view-pattern">pattern</button>
+          <button class="tog" id="view-song">song</button>
         </div>
         <button id="play-btn" class="play-btn">play</button>
         <span class="bpm-display" id="bpm-display">128 bpm</span>
       </div>
     </header>
 
-    <main class="main">
-      <!-- Sequencer panel — visible in UI mode (left) -->
-      <div class="seq-panel" id="panel-seq">
+    <main class="main" id="main">
+
+      <!-- ── PATTERN UI: sequencer (left) ── -->
+      <div class="panel" id="panel-seq">
         <div class="seq-header">
           <div class="panel-label">pattern</div>
           <div class="bpm-control">
@@ -57,59 +62,71 @@
         </div>
       </div>
 
-      <!-- Editor panel — always present; left in code mode, right in UI mode -->
-      <div class="editor-panel" id="panel-code">
+      <!-- ── PATTERN CODE: editor (center/left) ── -->
+      <div class="panel" id="panel-code">
         <div class="panel-label">code</div>
         <textarea id="editor" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
       </div>
 
-      <!-- Viz panel — visible in code mode (right) -->
-      <div class="viz-panel" id="panel-viz">
+      <!-- ── PATTERN CODE: viz + reference (right) ── -->
+      <div class="panel" id="panel-viz">
         <div class="panel-label">pattern</div>
         <div id="viz" class="viz"></div>
         <div class="ref-panel">
-          <div class="panel-label" style="margin-top: 1rem;">reference</div>
+          <div class="panel-label" style="margin-top:1rem">reference</div>
           <div class="ref-grid">
             <div class="ref-section">
               <div class="ref-title">drums</div>
-              <div class="ref-item"><code>kick</code> <span>808 kick</span></div>
-              <div class="ref-item"><code>snare</code> <span>snare drum</span></div>
-              <div class="ref-item"><code>clap</code> <span>hand clap</span></div>
-              <div class="ref-item"><code>hat</code> <span>closed hi-hat</span></div>
-              <div class="ref-item"><code>openhat</code> <span>open hi-hat</span></div>
-              <div class="ref-item"><code>rim</code> <span>rimshot</span></div>
+              <div class="ref-item"><code>kick</code><span>808 kick</span></div>
+              <div class="ref-item"><code>snare</code><span>snare</span></div>
+              <div class="ref-item"><code>clap</code><span>hand clap</span></div>
+              <div class="ref-item"><code>hat</code><span>hi-hat</span></div>
+              <div class="ref-item"><code>openhat</code><span>open hat</span></div>
+              <div class="ref-item"><code>rim</code><span>rimshot</span></div>
             </div>
             <div class="ref-section">
               <div class="ref-title">melodic</div>
-              <div class="ref-item"><code>synth c4</code> <span>sawtooth</span></div>
-              <div class="ref-item"><code>bass c2</code> <span>sub bass</span></div>
-              <div class="ref-item"><code>pad e3</code> <span>soft pad</span></div>
-              <div class="ref-title" style="margin-top: 0.75rem;">notes</div>
-              <div class="ref-item"><code>c d e f g a b</code></div>
-              <div class="ref-item"><code>c# d# f# g# a#</code></div>
-              <div class="ref-item"><code>octaves: 1 &ndash; 6</code></div>
+              <div class="ref-item"><code>synth c4</code><span>saw</span></div>
+              <div class="ref-item"><code>bass c2</code><span>sub</span></div>
+              <div class="ref-item"><code>pad e3</code><span>pad</span></div>
+              <div class="ref-title" style="margin-top:.75rem">song</div>
+              <div class="ref-item"><code>@scene A</code></div>
+              <div class="ref-item"><code>@song A×2 B×4</code></div>
             </div>
           </div>
         </div>
       </div>
-    </main>
 
-    <!-- Song bar — always visible -->
-    <div class="song-bar" id="song-bar">
-      <div class="song-section scenes-section">
-        <span class="song-label">scenes</span>
-        <div class="scenes-list" id="scenes-list"></div>
-        <button class="new-scene-btn" id="new-scene-btn" title="Save current pattern as a new scene">+</button>
+      <!-- ── SONG CODE: full editor ── -->
+      <div class="panel" id="panel-song-code">
+        <div class="panel-label">song code</div>
+        <textarea id="song-editor" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
       </div>
-      <div class="song-divider"></div>
-      <button class="play-mode-btn" id="play-mode-btn" title="Toggle loop / song playback">⟳&thinsp;loop</button>
-      <div class="song-divider"></div>
-      <div class="song-section arr-section">
-        <span class="song-label">song</span>
-        <div class="arr-list" id="arr-list">
-          <span class="arr-empty-hint" id="arr-empty-hint">save a scene and add it here</span>
+
+      <!-- ── SONG UI: scenes + arrangement ── -->
+      <div class="panel" id="panel-song-ui">
+        <div class="song-col scenes-col">
+          <div class="col-header">
+            <div class="panel-label">scenes</div>
+          </div>
+          <div class="scene-cards-list" id="scene-cards"></div>
+        </div>
+        <div class="song-col arr-col">
+          <div class="col-header">
+            <div class="panel-label">arrangement</div>
+            <span class="arr-total" id="arr-total"></span>
+          </div>
+          <div class="song-arr-list" id="song-arr-list"></div>
         </div>
       </div>
+
+    </main>
+
+    <!-- ── Scene strip: pattern modes only ── -->
+    <div class="scene-strip" id="scene-strip">
+      <span class="strip-label">scenes</span>
+      <div class="scenes-list" id="scenes-list"></div>
+      <button class="new-scene-btn" id="new-scene-btn" title="Save current pattern as a new scene">+</button>
     </div>
 
     <div class="status-bar" id="status-bar">
