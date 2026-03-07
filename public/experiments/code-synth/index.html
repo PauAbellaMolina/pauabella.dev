@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>codesynth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="title">code<span class="title-dim">synth</span></div>
+      <div class="controls">
+        <button id="play-btn" class="play-btn">play</button>
+        <span class="bpm-display" id="bpm-display">120 bpm</span>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="editor-panel">
+        <div class="panel-label">code</div>
+        <textarea id="editor" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
+      </div>
+
+      <div class="viz-panel">
+        <div class="panel-label">pattern</div>
+        <div id="viz" class="viz"></div>
+        <div class="ref-panel">
+          <div class="panel-label" style="margin-top: 1rem;">reference</div>
+          <div class="ref-grid">
+            <div class="ref-section">
+              <div class="ref-title">drums</div>
+              <div class="ref-item"><code>kick</code> <span>808 kick</span></div>
+              <div class="ref-item"><code>snare</code> <span>snare drum</span></div>
+              <div class="ref-item"><code>clap</code> <span>hand clap</span></div>
+              <div class="ref-item"><code>hat</code> <span>closed hi-hat</span></div>
+              <div class="ref-item"><code>openhat</code> <span>open hi-hat</span></div>
+              <div class="ref-item"><code>rim</code> <span>rimshot</span></div>
+            </div>
+            <div class="ref-section">
+              <div class="ref-title">melodic</div>
+              <div class="ref-item"><code>synth c4</code> <span>sawtooth</span></div>
+              <div class="ref-item"><code>bass c2</code> <span>sub bass</span></div>
+              <div class="ref-item"><code>pad e3</code> <span>soft pad</span></div>
+              <div class="ref-title" style="margin-top: 0.75rem;">notes</div>
+              <div class="ref-item"><code>c d e f g a b</code></div>
+              <div class="ref-item"><code>c# d# f# g# a#</code></div>
+              <div class="ref-item"><code>octaves: 1 - 6</code></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div class="status-bar" id="status-bar">
+      <span id="status-text">ready &mdash; press play or hit space</span>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
