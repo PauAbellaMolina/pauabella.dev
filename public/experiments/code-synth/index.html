@@ -94,6 +94,24 @@
       </div>
     </main>
 
+    <!-- Song bar — always visible -->
+    <div class="song-bar" id="song-bar">
+      <div class="song-section scenes-section">
+        <span class="song-label">scenes</span>
+        <div class="scenes-list" id="scenes-list"></div>
+        <button class="new-scene-btn" id="new-scene-btn" title="Save current pattern as a new scene">+</button>
+      </div>
+      <div class="song-divider"></div>
+      <button class="play-mode-btn" id="play-mode-btn" title="Toggle loop / song playback">⟳&thinsp;loop</button>
+      <div class="song-divider"></div>
+      <div class="song-section arr-section">
+        <span class="song-label">song</span>
+        <div class="arr-list" id="arr-list">
+          <span class="arr-empty-hint" id="arr-empty-hint">save a scene and add it here</span>
+        </div>
+      </div>
+    </div>
+
     <div class="status-bar" id="status-bar">
       <span id="status-text">ready &mdash; press play or hit space</span>
     </div>
