@@ -19,6 +19,13 @@ export interface Experiment {
 
 const experiments: Experiment[] = [
   {
+    id: 'code-synth',
+    title: 'codesynth',
+    description: 'A live music coding environment. Write patterns in a simple language and hear them play in a loop.',
+    path: '/experiments/code-synth/index.html',
+    thumbnail: null,
+  },
+  {
     id: 'photobooth',
     title: 'Photobooth',
     description: 'Strike a pose. Four frames, one strip — printed right in your browser.',
