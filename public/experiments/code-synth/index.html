@@ -10,22 +10,61 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="app">
+  <div class="app" id="app">
     <header class="header">
       <div class="title">code<span class="title-dim">synth</span></div>
-      <div class="controls">
+      <div class="header-right">
+        <div class="mode-toggle">
+          <button class="mode-opt active" id="mode-code">code</button>
+          <button class="mode-opt" id="mode-ui">ui</button>
+        </div>
         <button id="play-btn" class="play-btn">play</button>
-        <span class="bpm-display" id="bpm-display">120 bpm</span>
+        <span class="bpm-display" id="bpm-display">128 bpm</span>
       </div>
     </header>
 
     <main class="main">
-      <div class="editor-panel">
+      <!-- Sequencer panel — visible in UI mode (left) -->
+      <div class="seq-panel" id="panel-seq">
+        <div class="seq-header">
+          <div class="panel-label">pattern</div>
+          <div class="bpm-control">
+            <span class="bpm-label">bpm</span>
+            <button class="bpm-btn" id="bpm-down">−</button>
+            <span id="bpm-value">128</span>
+            <button class="bpm-btn" id="bpm-up">+</button>
+          </div>
+        </div>
+        <div class="seq-tracks" id="seq-tracks"></div>
+        <div class="add-track-row">
+          <select id="inst-select">
+            <optgroup label="drums">
+              <option value="kick">kick</option>
+              <option value="snare">snare</option>
+              <option value="clap">clap</option>
+              <option value="hat">hat</option>
+              <option value="openhat">openhat</option>
+              <option value="rim">rim</option>
+            </optgroup>
+            <optgroup label="melodic">
+              <option value="synth">synth</option>
+              <option value="bass">bass</option>
+              <option value="pad">pad</option>
+            </optgroup>
+          </select>
+          <input id="note-input" type="text" placeholder="c4" maxlength="3" class="note-input">
+          <button id="add-track-btn" class="add-btn">+ add track</button>
+        </div>
+      </div>
+
+      <!-- Editor panel — always present; left in code mode, right in UI mode -->
+      <div class="editor-panel" id="panel-code">
         <div class="panel-label">code</div>
         <textarea id="editor" spellcheck="false" autocorrect="off" autocapitalize="off"></textarea>
       </div>
 
-      <div class="viz-panel">
+      <!-- Viz panel — visible in code mode (right) -->
+      <div class="viz-panel" id="panel-viz">
         <div class="panel-label">pattern</div>
         <div id="viz" class="viz"></div>
         <div class="ref-panel">
@@ -48,7 +87,7 @@
               <div class="ref-title" style="margin-top: 0.75rem;">notes</div>
               <div class="ref-item"><code>c d e f g a b</code></div>
               <div class="ref-item"><code>c# d# f# g# a#</code></div>
-              <div class="ref-item"><code>octaves: 1 - 6</code></div>
+              <div class="ref-item"><code>octaves: 1 &ndash; 6</code></div>
             </div>
           </div>
         </div>

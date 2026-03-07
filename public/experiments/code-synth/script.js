@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────
-//  codesynth — a live music coding experiment
+//  codesynth — live music coding experiment
 //
 //  Language syntax:
 //    bpm 128
@@ -7,7 +7,7 @@
 //    snare  | . . . . | x . . . | . . . . | x . . . |
 //    synth  c4 | x . . x | . . x . |
 //    bass   c2 | x . . . |
-//    # this is a comment
+//    # comment
 // ─────────────────────────────────────────────
 
 const DEFAULT_CODE =
@@ -21,22 +21,31 @@ synth  c4 | x . . x | . . x . | x . . x | . x . . |
 synth  e4 | . . x . | x . . . | . . x . | . . . x |
 bass   c2 | x . . . | . . . . | x . . . | . . . . |`;
 
-// ── Note frequency table ──────────────────────
+// ── Note frequencies ──────────────────────────
 
 const NOTE_FREQ = {};
 const NOTE_NAMES = ['c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#', 'a', 'a#', 'b'];
 for (let oct = 0; oct <= 8; oct++) {
   for (let i = 0; i < 12; i++) {
-    const name = NOTE_NAMES[i] + oct;
-    NOTE_FREQ[name] = 440 * Math.pow(2, (oct - 4) + (i - 9) / 12);
+    NOTE_FREQ[NOTE_NAMES[i] + oct] = 440 * Math.pow(2, (oct - 4) + (i - 9) / 12);
   }
 }
 
-// ── State ─────────────────────────────────────
+// ── Constants ─────────────────────────────────
 
 const STEPS = 16;
 const LOOKAHEAD_MS = 25;
 const SCHEDULE_AHEAD_S = 0.12;
+const MELODIC_INSTRUMENTS = ['synth', 'bass', 'pad'];
+
+// ── Shared state ──────────────────────────────
+
+let parsedTracks = [];
+let currentBpm = 128;
+let isUIMode = false;
+let suppressEditorUpdate = false; // prevent parse→generate→parse loops
+
+// ── Playback state ────────────────────────────
 
 let audioCtx = null;
 let isPlaying = false;
@@ -44,43 +53,47 @@ let timerID = null;
 let schedulerStep = 0;
 let nextStepTime = 0;
 
-let parsedTracks = [];
-let currentBpm = 128;
-
-// Queue of {step, time} for syncing display to audio
+// Queue of {step, time} for syncing display to audio clock
 const stepQueue = [];
 let lastVizStep = -1;
 
 // ── DOM refs ──────────────────────────────────
 
-const editor = document.getElementById('editor');
-const playBtn = document.getElementById('play-btn');
+const app        = document.getElementById('app');
+const editor     = document.getElementById('editor');
+const playBtn    = document.getElementById('play-btn');
 const bpmDisplay = document.getElementById('bpm-display');
-const viz = document.getElementById('viz');
-const statusBar = document.getElementById('status-bar');
+const viz        = document.getElementById('viz');
+const seqTracks  = document.getElementById('seq-tracks');
+const statusBar  = document.getElementById('status-bar');
 const statusText = document.getElementById('status-text');
+const modeCode   = document.getElementById('mode-code');
+const modeUI     = document.getElementById('mode-ui');
+const bpmDown    = document.getElementById('bpm-down');
+const bpmUp      = document.getElementById('bpm-up');
+const bpmValue   = document.getElementById('bpm-value');
+const instSelect = document.getElementById('inst-select');
+const noteInput  = document.getElementById('note-input');
+const addTrackBtn = document.getElementById('add-track-btn');
 
 editor.value = DEFAULT_CODE;
 
 // ── Parser ────────────────────────────────────
 
 function parseCode(code) {
-  const lines = code.split('\n');
   const tracks = [];
   let bpm = 120;
 
-  for (const rawLine of lines) {
+  for (const rawLine of code.split('\n')) {
     const line = rawLine.replace(/#.*$/, '').trim();
     if (!line) continue;
 
-    // bpm directive
     const bpmMatch = line.match(/^bpm\s+(\d+)/i);
     if (bpmMatch) {
       bpm = Math.min(300, Math.max(20, parseInt(bpmMatch[1])));
       continue;
     }
 
-    // Track line: instrument [note] | pattern |
     const tokens = line.split(/\s+/);
     if (tokens.length < 2) continue;
 
@@ -96,7 +109,6 @@ function parseCode(code) {
       patternTokens = tokens.slice(1);
     }
 
-    // Collect x / . from pattern (ignore |)
     const steps = [];
     for (const tok of patternTokens) {
       for (const ch of tok) {
@@ -107,9 +119,8 @@ function parseCode(code) {
 
     if (steps.length === 0) continue;
 
-    // Tile pattern to STEPS length
+    // Tile to 16 steps
     const tiled = Array.from({ length: STEPS }, (_, i) => steps[i % steps.length]);
-
     const label = note ? `${instrument} ${note}` : instrument;
     tracks.push({ instrument, note, steps: tiled, label });
   }
@@ -117,9 +128,32 @@ function parseCode(code) {
   return { bpm, tracks };
 }
 
+// ── Code generator (state → text) ────────────
+
+function generateCode(tracks, bpm) {
+  const lines = [`bpm ${bpm}`, ''];
+  for (const track of tracks) {
+    const groups = [];
+    for (let g = 0; g < 4; g++) {
+      groups.push(track.steps.slice(g * 4, g * 4 + 4).map(s => s ? 'x' : '.').join(' '));
+    }
+    const pattern = '| ' + groups.join(' | ') + ' |';
+    const prefix = track.note ? `${track.instrument}  ${track.note}` : track.instrument;
+    lines.push(prefix.padEnd(11) + pattern);
+  }
+  return lines.join('\n');
+}
+
+// Sync editor from current state without triggering re-parse
+function syncEditorFromState() {
+  suppressEditorUpdate = true;
+  editor.value = generateCode(parsedTracks, currentBpm);
+  suppressEditorUpdate = false;
+}
+
 // ── Audio synthesis ───────────────────────────
 
-function ctx() {
+function getCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
@@ -138,7 +172,6 @@ function playKick(ac, t) {
 }
 
 function playSnare(ac, t) {
-  // Noise body
   const bufLen = Math.ceil(ac.sampleRate * 0.18);
   const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
   const data = buf.getChannelData(0);
@@ -158,7 +191,6 @@ function playSnare(ac, t) {
   noise.start(t);
   noise.stop(t + 0.18);
 
-  // Tonal body
   const osc = ac.createOscillator();
   const oscGain = ac.createGain();
   osc.frequency.value = 185;
@@ -177,7 +209,6 @@ function playClap(ac, t) {
     const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
     const data = buf.getChannelData(0);
     for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
-
     const noise = ac.createBufferSource();
     noise.buffer = buf;
     const bpf = ac.createBiquadFilter();
@@ -201,7 +232,6 @@ function playHat(ac, t, open) {
   const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
   const data = buf.getChannelData(0);
   for (let i = 0; i < bufLen; i++) data[i] = Math.random() * 2 - 1;
-
   const noise = ac.createBufferSource();
   noise.buffer = buf;
   const bpf = ac.createBiquadFilter();
@@ -251,7 +281,6 @@ function playSynth(ac, t, note, instrument) {
     gain.gain.setValueAtTime(0.22, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
   } else {
-    // synth — sawtooth with filter sweep
     osc.type = 'sawtooth';
     filt.type = 'lowpass';
     filt.frequency.setValueAtTime(2800, t);
@@ -269,14 +298,14 @@ function playSynth(ac, t, note, instrument) {
 }
 
 function triggerTrack(track, t) {
-  const ac = ctx();
+  const ac = getCtx();
   switch (track.instrument) {
-    case 'kick':                    playKick(ac, t); break;
-    case 'snare':                   playSnare(ac, t); break;
-    case 'clap':                    playClap(ac, t); break;
-    case 'hat': case 'hihat':       playHat(ac, t, false); break;
-    case 'openhat':                 playHat(ac, t, true); break;
-    case 'rim':                     playRim(ac, t); break;
+    case 'kick':                  playKick(ac, t); break;
+    case 'snare':                 playSnare(ac, t); break;
+    case 'clap':                  playClap(ac, t); break;
+    case 'hat': case 'hihat':     playHat(ac, t, false); break;
+    case 'openhat':               playHat(ac, t, true); break;
+    case 'rim':                   playRim(ac, t); break;
     case 'synth': case 'bass': case 'pad':
       playSynth(ac, t, track.note || 'c4', track.instrument); break;
   }
@@ -285,29 +314,29 @@ function triggerTrack(track, t) {
 // ── Scheduler ─────────────────────────────────
 
 function scheduleStep(step, time) {
-  // At loop start, re-parse and update tracks/bpm
+  // At loop start: re-parse and update audio state
   if (step === 0) {
     const result = parseCode(editor.value);
     parsedTracks = result.tracks;
     if (result.bpm !== currentBpm) {
       currentBpm = result.bpm;
       bpmDisplay.textContent = `${currentBpm} bpm`;
+      if (isUIMode) bpmValue.textContent = currentBpm;
     }
-    rebuildViz();
+    // Rebuild viz in code mode only (sequencer updates via input events)
+    if (!isUIMode) rebuildViz();
   }
 
-  // Push to display queue
   stepQueue.push({ step, time });
 
-  // Schedule audio
   for (const track of parsedTracks) {
     if (track.steps[step]) triggerTrack(track, time);
   }
 }
 
 function scheduler() {
-  const ac = ctx();
-  const stepDur = 60 / currentBpm / 4; // 16th note duration
+  const ac = getCtx();
+  const stepDur = 60 / currentBpm / 4;
 
   while (nextStepTime < ac.currentTime + SCHEDULE_AHEAD_S) {
     scheduleStep(schedulerStep, nextStepTime);
@@ -318,40 +347,49 @@ function scheduler() {
   timerID = setTimeout(scheduler, LOOKAHEAD_MS);
 }
 
-// ── Visual sync ───────────────────────────────
+// ── Visual sync (RAF) ─────────────────────────
 
 function animateViz() {
   if (isPlaying && audioCtx) {
     const now = audioCtx.currentTime;
-
-    // Drain queue up to current time
     let curStep = lastVizStep;
+
     while (stepQueue.length > 0 && stepQueue[0].time <= now) {
       curStep = stepQueue.shift().step;
     }
 
     if (curStep !== lastVizStep) {
       lastVizStep = curStep;
-      highlightStep(curStep);
+      if (isUIMode) highlightSeqStep(curStep);
+      else          highlightVizStep(curStep);
     }
   }
   requestAnimationFrame(animateViz);
 }
 
-function highlightStep(step) {
-  const rows = viz.querySelectorAll('.track-row');
-  rows.forEach(row => {
-    const steps = row.querySelectorAll('.step');
-    steps.forEach((el, i) => el.classList.toggle('current', i === step));
+function highlightVizStep(step) {
+  viz.querySelectorAll('.track-row').forEach(row => {
+    row.querySelectorAll('.step').forEach((el, i) => el.classList.toggle('current', i === step));
   });
+}
+
+function highlightSeqStep(step) {
+  seqTracks.querySelectorAll('.seq-row').forEach(row => {
+    row.querySelectorAll('.seq-step').forEach((el, i) => el.classList.toggle('current', i === step));
+  });
+}
+
+function clearStepHighlights() {
+  viz.querySelectorAll('.step').forEach(el => el.classList.remove('current'));
+  seqTracks.querySelectorAll('.seq-step').forEach(el => el.classList.remove('current'));
 }
 
 requestAnimationFrame(animateViz);
 
-// ── Viz builder ───────────────────────────────
+// ── Viz builder (code mode) ───────────────────
 
 function rebuildViz() {
-  const currentHighlight = lastVizStep;
+  const curStep = lastVizStep;
   viz.innerHTML = '';
 
   for (const track of parsedTracks) {
@@ -366,14 +404,13 @@ function rebuildViz() {
     const stepsEl = document.createElement('div');
     stepsEl.className = 'track-steps';
 
-    // Render steps in groups of 4
     for (let g = 0; g < 4; g++) {
       const group = document.createElement('div');
       group.className = 'step-group';
       for (let s = 0; s < 4; s++) {
         const i = g * 4 + s;
         const el = document.createElement('div');
-        el.className = `step ${track.steps[i] ? 'on' : 'off'}${i === currentHighlight ? ' current' : ''}`;
+        el.className = `step ${track.steps[i] ? 'on' : 'off'}${i === curStep ? ' current' : ''}`;
         group.appendChild(el);
       }
       stepsEl.appendChild(group);
@@ -384,17 +421,166 @@ function rebuildViz() {
   }
 }
 
+// ── Sequencer builder (UI mode) ───────────────
+
+function rebuildSequencer() {
+  const curStep = lastVizStep;
+  seqTracks.innerHTML = '';
+
+  for (let ti = 0; ti < parsedTracks.length; ti++) {
+    const track = parsedTracks[ti];
+
+    const row = document.createElement('div');
+    row.className = 'seq-row';
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'seq-name';
+    nameEl.textContent = track.label;
+    row.appendChild(nameEl);
+
+    const stepsEl = document.createElement('div');
+    stepsEl.className = 'seq-steps';
+
+    for (let g = 0; g < 4; g++) {
+      const group = document.createElement('div');
+      group.className = 'seq-group';
+      for (let s = 0; s < 4; s++) {
+        const i = g * 4 + s;
+        const btn = document.createElement('button');
+        btn.className = `seq-step ${track.steps[i] ? 'on' : 'off'}${i === curStep ? ' current' : ''}`;
+        btn.dataset.track = ti;
+        btn.dataset.step = i;
+        btn.addEventListener('click', handleStepClick);
+        group.appendChild(btn);
+      }
+      stepsEl.appendChild(group);
+    }
+
+    row.appendChild(stepsEl);
+
+    const del = document.createElement('button');
+    del.className = 'seq-delete';
+    del.textContent = '×';
+    del.title = 'remove track';
+    del.dataset.track = ti;
+    del.addEventListener('click', handleDeleteTrack);
+    row.appendChild(del);
+
+    seqTracks.appendChild(row);
+  }
+}
+
+// ── Sequencer interactions ────────────────────
+
+function handleStepClick(e) {
+  const ti = parseInt(e.currentTarget.dataset.track);
+  const si = parseInt(e.currentTarget.dataset.step);
+  parsedTracks[ti].steps[si] = !parsedTracks[ti].steps[si];
+  // Update just the clicked button (no full rebuild)
+  e.currentTarget.classList.toggle('on',  parsedTracks[ti].steps[si]);
+  e.currentTarget.classList.toggle('off', !parsedTracks[ti].steps[si]);
+  syncEditorFromState();
+}
+
+function handleDeleteTrack(e) {
+  const ti = parseInt(e.currentTarget.dataset.track);
+  parsedTracks.splice(ti, 1);
+  rebuildSequencer();
+  syncEditorFromState();
+}
+
+function handleAddTrack() {
+  const instrument = instSelect.value;
+  let note = null;
+
+  if (MELODIC_INSTRUMENTS.includes(instrument)) {
+    const raw = noteInput.value.trim().toLowerCase();
+    note = NOTE_FREQ[raw] ? raw : 'c4';
+  }
+
+  const label = note ? `${instrument} ${note}` : instrument;
+  const steps = Array(STEPS).fill(false);
+  parsedTracks.push({ instrument, note, steps, label });
+
+  rebuildSequencer();
+  syncEditorFromState();
+
+  // Scroll the new row into view
+  seqTracks.lastElementChild?.scrollIntoView({ block: 'nearest' });
+}
+
+// Show/hide note input based on selected instrument
+function updateNoteInputVisibility() {
+  noteInput.style.display = MELODIC_INSTRUMENTS.includes(instSelect.value) ? '' : 'none';
+}
+
+instSelect.addEventListener('change', updateNoteInputVisibility);
+addTrackBtn.addEventListener('click', handleAddTrack);
+
+// BPM ± buttons
+bpmDown.addEventListener('click', () => {
+  currentBpm = Math.max(20, currentBpm - 5);
+  bpmValue.textContent = currentBpm;
+  bpmDisplay.textContent = `${currentBpm} bpm`;
+  syncEditorFromState();
+});
+
+bpmUp.addEventListener('click', () => {
+  currentBpm = Math.min(300, currentBpm + 5);
+  bpmValue.textContent = currentBpm;
+  bpmDisplay.textContent = `${currentBpm} bpm`;
+  syncEditorFromState();
+});
+
+// ── Mode switching ────────────────────────────
+
+function switchToUIMode() {
+  // Parse latest code first
+  const result = parseCode(editor.value);
+  parsedTracks = result.tracks;
+  currentBpm = result.bpm;
+
+  isUIMode = true;
+  app.classList.add('ui-mode');
+  modeCode.classList.remove('active');
+  modeUI.classList.add('active');
+
+  bpmValue.textContent = currentBpm;
+  rebuildSequencer();
+}
+
+function switchToCodeMode() {
+  isUIMode = false;
+  // Generate fresh code from current sequencer state
+  syncEditorFromState();
+
+  app.classList.remove('ui-mode');
+  modeCode.classList.add('active');
+  modeUI.classList.remove('active');
+
+  rebuildViz();
+}
+
+modeCode.addEventListener('click', () => { if (isUIMode)  switchToCodeMode(); });
+modeUI.addEventListener('click',   () => { if (!isUIMode) switchToUIMode(); });
+
 // ── Playback control ──────────────────────────
 
 function startPlaying() {
-  const ac = ctx();
+  const ac = getCtx();
   if (ac.state === 'suspended') ac.resume();
 
   const result = parseCode(editor.value);
   parsedTracks = result.tracks;
   currentBpm = result.bpm;
   bpmDisplay.textContent = `${currentBpm} bpm`;
-  rebuildViz();
+
+  if (isUIMode) {
+    bpmValue.textContent = currentBpm;
+    rebuildSequencer();
+  } else {
+    rebuildViz();
+  }
 
   schedulerStep = 0;
   nextStepTime = ac.currentTime + 0.05;
@@ -406,7 +592,7 @@ function startPlaying() {
 
   playBtn.textContent = 'stop';
   playBtn.classList.add('playing');
-  setStatus('playing — edit code and hear changes on next loop');
+  setStatus('playing — edit code or click steps, changes take effect on next loop');
 }
 
 function stopPlaying() {
@@ -414,9 +600,7 @@ function stopPlaying() {
   isPlaying = false;
   stepQueue.length = 0;
   lastVizStep = -1;
-
-  // Clear highlights
-  viz.querySelectorAll('.step').forEach(el => el.classList.remove('current'));
+  clearStepHighlights();
 
   playBtn.textContent = 'play';
   playBtn.classList.remove('playing');
@@ -428,6 +612,41 @@ function togglePlay() {
   else startPlaying();
 }
 
+playBtn.addEventListener('click', togglePlay);
+
+document.addEventListener('keydown', e => {
+  if (e.target === editor) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+});
+
+// ── Live code editing ─────────────────────────
+
+let debounceTimer = null;
+editor.addEventListener('input', () => {
+  if (suppressEditorUpdate) return;
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    try {
+      const result = parseCode(editor.value);
+      parsedTracks = result.tracks;
+      currentBpm = result.bpm;
+      bpmDisplay.textContent = `${currentBpm} bpm`;
+
+      // Update whichever view is active
+      if (isUIMode) {
+        bpmValue.textContent = currentBpm;
+        rebuildSequencer();
+      } else {
+        rebuildViz();
+      }
+
+      statusBar.classList.remove('error');
+    } catch (err) {
+      setStatus('parse error: ' + err.message, true);
+    }
+  }, 200);
+});
+
 // ── Status ────────────────────────────────────
 
 function setStatus(msg, isError = false) {
@@ -435,45 +654,14 @@ function setStatus(msg, isError = false) {
   statusBar.classList.toggle('error', isError);
 }
 
-// ── Events ────────────────────────────────────
-
-playBtn.addEventListener('click', togglePlay);
-
-// Space = play/stop (when not focused in editor)
-document.addEventListener('keydown', e => {
-  if (e.target === editor) return;
-  if (e.code === 'Space') {
-    e.preventDefault();
-    togglePlay();
-  }
-});
-
-// Live preview: update viz while typing (debounced)
-let debounceTimer = null;
-editor.addEventListener('input', () => {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    try {
-      const result = parseCode(editor.value);
-      if (!isPlaying) {
-        parsedTracks = result.tracks;
-        currentBpm = result.bpm;
-        bpmDisplay.textContent = `${currentBpm} bpm`;
-        rebuildViz();
-      }
-      // When playing, tracks + bpm update on next loop's step 0
-      statusBar.classList.remove('error');
-    } catch (e) {
-      setStatus('parse error: ' + e.message, true);
-    }
-  }, 200);
-});
-
 // ── Init ──────────────────────────────────────
 
-const result = parseCode(editor.value);
-parsedTracks = result.tracks;
-currentBpm = result.bpm;
+const initResult = parseCode(editor.value);
+parsedTracks = initResult.tracks;
+currentBpm = initResult.bpm;
 bpmDisplay.textContent = `${currentBpm} bpm`;
+bpmValue.textContent = currentBpm;
+
+updateNoteInputVisibility();
 rebuildViz();
 setStatus('ready — press play or hit space');
