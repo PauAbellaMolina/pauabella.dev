@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ReactComponent as PauAvatar } from '../../assets/svg/pauavatar.svg';
 import experiments, { type Experiment } from './experiments';
-import ExperimentModal from '../../components/ExperimentModal';
 
 interface ColorPalette {
   text: string;
@@ -19,7 +18,6 @@ function Vibecoding() {
     background: `transparent`
   };
   const [colorPalette, setColorPalette] = useState<ColorPalette>(defaultColorPalette);
-  const [modalExperiment, setModalExperiment] = useState<Experiment | null>(null);
 
   const setNewRandomColorPalette = () => {
     const randomColorPalette: ColorPalette = {
@@ -41,11 +39,7 @@ function Vibecoding() {
   }
 
   const handleExperimentClick = (experiment: Experiment) => {
-    if (experiment.displayMode === 'fullscreen') {
-      navigate(`/experiment/${experiment.id}`);
-    } else {
-      setModalExperiment(experiment);
-    }
+    navigate(`/experiment/${experiment.id}`);
   };
 
   return (
@@ -69,9 +63,6 @@ function Vibecoding() {
                 <div className="experiment-info">
                   <h3>{experiment.title}</h3>
                   <p>{experiment.description}</p>
-                  <span className="experiment-mode">
-                    {experiment.displayMode === 'fullscreen' ? 'Fullscreen' : 'Modal'}
-                  </span>
                 </div>
               </div>
             ))}
@@ -79,12 +70,6 @@ function Vibecoding() {
         )}
       </div>
 
-      {modalExperiment && (
-        <ExperimentModal
-          experiment={modalExperiment}
-          onClose={() => setModalExperiment(null)}
-        />
-      )}
     </div>
   );
 }
