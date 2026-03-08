@@ -419,19 +419,6 @@ body {
   line-height: 1;
 }
 
-.arr-chip-vol {
-  font-size: 0.58rem;
-  font-weight: 600;
-  color: #0f4c81;
-  opacity: 0.35;
-  cursor: pointer;
-  user-select: none;
-  line-height: 1;
-  transition: opacity 0.12s;
-}
-.arr-chip-vol.dimmed { opacity: 0.75; color: #0f4c81; }
-.arr-scene-chip:hover .arr-chip-vol { opacity: 0.8; }
-.arr-chip-vol:hover { opacity: 1 !important; }
 
 .arr-chip-remove {
   position: absolute;

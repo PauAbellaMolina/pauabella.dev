@@ -1103,25 +1103,6 @@ function rebuildSongArrList() {
         letter.addEventListener('click', e => { e.stopPropagation(); openPatternEditor(sceneId); });
         chip.appendChild(letter);
 
-        // Volume badge — click to cycle through presets
-        const VOL_PRESETS = [1.0, 0.75, 0.5, 0.25];
-        const curVol = arrangement[i].volumes?.[sceneId] ?? 1.0;
-        const volBadge = document.createElement('span');
-        volBadge.className = 'arr-chip-vol' + (Math.abs(curVol - 1.0) > 0.005 ? ' dimmed' : '');
-        volBadge.textContent = Math.round(curVol * 100) + '%';
-        volBadge.title = 'Click to adjust volume';
-        volBadge.addEventListener('click', e => {
-          e.stopPropagation();
-          const step = arrangement[i];
-          if (!step.volumes) step.volumes = {};
-          const v = step.volumes[sceneId] ?? 1.0;
-          const idx2 = VOL_PRESETS.findIndex(p => Math.abs(p - v) < 0.01);
-          step.volumes[sceneId] = VOL_PRESETS[(idx2 + 1) % VOL_PRESETS.length];
-          rebuildSongArrList();
-          syncSongEditorFromState();
-        });
-        chip.appendChild(volBadge);
-
         const removeChip = document.createElement('button');
         removeChip.className = 'arr-chip-remove';
         removeChip.textContent = '×';
