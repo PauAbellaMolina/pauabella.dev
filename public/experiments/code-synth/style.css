@@ -351,13 +351,33 @@ body {
 .song-arr-block.drag-over { border-color: #0f4c81; background: rgba(15,76,129,0.1); }
 .song-arr-block.playing   { border-color: #0f4c81; background: rgba(15,76,129,0.08); }
 
-.arr-drag-handle {
-  font-size: 0.75rem;
-  opacity: 0.2;
-  letter-spacing: 0.05em;
+.arr-reorder-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   flex-shrink: 0;
-  cursor: grab;
 }
+
+.arr-reorder-btn {
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.68rem;
+  color: #0f4c81;
+  opacity: 0.25;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  width: 16px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.12s;
+  border-radius: 3px;
+}
+.arr-reorder-btn:hover:not(:disabled) { opacity: 0.7; background: rgba(15, 76, 129, 0.1); }
+.arr-reorder-btn:disabled { opacity: 0.1; cursor: default; }
 
 /* ── Scene chips within each arrangement step ── */
 

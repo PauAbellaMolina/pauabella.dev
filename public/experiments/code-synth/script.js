@@ -959,12 +959,8 @@ function rebuildSongArrList() {
       block.className = 'song-arr-block';
       block.dataset.idx = i;
       block.draggable = true;
+      block.title = 'Drag onto another step to merge (play in parallel)';
       if (isPlaying && isSongPlayback() && i === arrPlayIdx) block.classList.add('playing');
-
-      const handle = document.createElement('div');
-      handle.className = 'arr-drag-handle';
-      handle.textContent = '⠿';
-      block.appendChild(handle);
 
       const scenesGroup = document.createElement('div');
       scenesGroup.className = 'arr-block-scenes';
@@ -1004,7 +1000,43 @@ function rebuildSongArrList() {
 
       block.appendChild(scenesGroup);
 
-      // Block drag handlers
+      // Reorder buttons
+      const reorderGroup = document.createElement('div');
+      reorderGroup.className = 'arr-reorder-btns';
+
+      const upBtn = document.createElement('button');
+      upBtn.className = 'arr-reorder-btn';
+      upBtn.textContent = '↑';
+      upBtn.title = 'Move step earlier';
+      upBtn.disabled = i === 0;
+      upBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (i > 0) {
+          [arrangement[i - 1], arrangement[i]] = [arrangement[i], arrangement[i - 1]];
+          rebuildSongArrList();
+          syncSongEditorFromState();
+        }
+      });
+
+      const downBtn = document.createElement('button');
+      downBtn.className = 'arr-reorder-btn';
+      downBtn.textContent = '↓';
+      downBtn.title = 'Move step later';
+      downBtn.disabled = i === arrangement.length - 1;
+      downBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (i < arrangement.length - 1) {
+          [arrangement[i], arrangement[i + 1]] = [arrangement[i + 1], arrangement[i]];
+          rebuildSongArrList();
+          syncSongEditorFromState();
+        }
+      });
+
+      reorderGroup.appendChild(upBtn);
+      reorderGroup.appendChild(downBtn);
+      block.appendChild(reorderGroup);
+
+      // Block drag handlers — drag onto another block to MERGE (play in parallel)
       block.addEventListener('dragstart', e => {
         dragSrcIdx = i;
         dragSourceType = 'arr-block';
@@ -1025,12 +1057,9 @@ function rebuildSongArrList() {
         songArrList.querySelectorAll('.drag-over, .drag-merge').forEach(b => {
           if (b !== block) b.classList.remove('drag-over', 'drag-merge');
         });
-        if (dragSourceType === 'scene-card') {
+        if (dragSourceType === 'scene-card' || (dragSourceType === 'arr-block' && dragSrcIdx !== i)) {
           block.classList.add('drag-merge');
           block.classList.remove('drag-over');
-        } else if (dragSourceType === 'arr-block' && dragSrcIdx !== i) {
-          block.classList.add('drag-over');
-          block.classList.remove('drag-merge');
         }
       });
       block.addEventListener('dragleave', e => {
@@ -1047,14 +1076,19 @@ function rebuildSongArrList() {
             rebuildSongArrList();
             syncSongEditorFromState();
             const sc = scenes.find(s => s.id === dragSceneId);
-            if (sc) setStatus(`scene ${sc.name} layered into step ${i + 1}`);
+            if (sc) setStatus(`scene ${sc.name} added to step ${i + 1} — plays in parallel`);
           }
         } else if (dragSourceType === 'arr-block' && dragSrcIdx !== null && dragSrcIdx !== i) {
-          const insertAt = dragSrcIdx < i ? i - 1 : i;
-          const [moved] = arrangement.splice(dragSrcIdx, 1);
-          arrangement.splice(insertAt, 0, moved);
+          // Merge: combine dragged step's scenes into this step
+          const srcStep = arrangement[dragSrcIdx];
+          for (const sid of srcStep.sceneIds) {
+            if (!arrangement[i].sceneIds.includes(sid)) arrangement[i].sceneIds.push(sid);
+          }
+          arrangement.splice(dragSrcIdx, 1);
+          if (arrPlayIdx >= arrangement.length) arrPlayIdx = Math.max(0, arrangement.length - 1);
           rebuildSongArrList();
           syncSongEditorFromState();
+          setStatus('steps merged — scenes play in parallel');
         }
         dragSrcIdx = null;
         dragSceneId = null;
@@ -1072,7 +1106,7 @@ function rebuildSongArrList() {
   const dropZone = document.createElement('div');
   dropZone.className = 'arr-drop-zone';
   dropZone.id = 'arr-drop-zone';
-  dropZone.textContent = '+ drop scene here to add step';
+  dropZone.textContent = '+ drop scene here to add as new step';
   dropZone.addEventListener('dragover', e => {
     if (dragSourceType === 'scene-card') { e.preventDefault(); dropZone.classList.add('active'); }
   });
