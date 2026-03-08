@@ -30,23 +30,54 @@ synth  e4 | . . x . | x . . . | . . x . | . . . x |
 bass   c2 | x . . . | . . . . | x . . . | . . . . |`;
 
 const SONG_CODE_TEMPLATE =
-`# codesynth song
-# define scenes with @scene [letter], then write pattern code
-# arrange with @song — space = next step, + = parallel (e.g. A B A+B)
+`# codesynth — intro, groove, buildup, drop
+# scenes layer with +, space moves to next bar
 
 @scene A
+# intro — bare kick, sets the pulse
+bpm 128
+kick   | x . . . | x . . . | x . . . | x . . . |
+
+@scene B
+# groove — full drum kit
 bpm 128
 kick   | x . . . | x . . . | x . . . | x . . . |
 snare  | . . . . | x . . . | . . . . | x . . . |
 hat    | x . x . | x . x . | x . x . | x . x . |
 
-@scene B
+@scene C
+# bass — C minor root motion: C → G → Bb → F
 bpm 128
-kick   | x . x . | x . x . | x . x . | x . x . |
-hat    | x x x x | x x x x | x x x x | x x x x |
-synth  c4 | x . . x | . . x . | x . . x | . x . . |
+bass   c2  | x . . . | . . . . | x . . . | . . . . |
+bass   g2  | . . . . | x . . . | . . . . | . . . . |
+bass   a#1 | . . . . | . . . . | . . x . | . . . . |
+bass   f2  | . . . . | . . . . | . . . . | x . . . |
 
-@song A A B B B B A A`;
+@scene D
+# lead — C minor scale up then back down
+bpm 128
+synth  c4  | x . . . | . . . . | . . . . | x . . . |
+synth  d#4 | . . x . | . . . . | . . x . | . . . . |
+synth  f4  | . . . . | x . . . | x . . . | . . . . |
+synth  g4  | . . . . | . . x . | . . . . | . . . . |
+synth  a#3 | . . . . | . . . . | . . . . | . . x . |
+
+@scene E
+# buildup — hats push forward, snare rolls in, no kick
+bpm 128
+hat    | x x x x | x x x x | x x x x | x x x x |
+snare  vol:0.4 | . . . . | . . . . | x . x . | x x x . |
+openhat vol:0.3 | . . . . | x . . . | x . . x | x . x x |
+
+@scene F
+# drop kit — double kick for maximum punch
+bpm 128
+kick   | x . x . | x . . . | x . x . | x . . . |
+snare  | . . . . | x . . . | . . . . | x . . . |
+hat    | x x x x | x x x x | x x x x | x x x x |
+clap   vol:0.55 | . . . . | x . . . | . . . . | x . . . |
+
+@song A A B B+C B+C+D B+C+D E E F+C+D F+C+D F+C+D F+C+D B+C B`;
 
 // ── Note frequencies ──────────────────────────
 
