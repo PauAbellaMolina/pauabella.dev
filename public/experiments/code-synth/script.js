@@ -183,10 +183,11 @@ function applyStepWidth(targetScrollLeft) {
 }
 
 songArrList.addEventListener('wheel', e => {
+  if (representationMode === 'code') return; // let browser scroll list natively in code mode
   if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
     e.preventDefault();
     const prev = stepWidth;
-    stepWidth = Math.min(STEP_WIDTH_MAX, Math.max(STEP_WIDTH_MIN, stepWidth + (e.deltaY < 0 ? 5 : -5)));
+    stepWidth = Math.min(STEP_WIDTH_MAX, Math.max(STEP_WIDTH_MIN, stepWidth + (e.deltaY < 0 ? 2 : -2)));
     if (stepWidth !== prev) {
       const rect = songArrList.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
