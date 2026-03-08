@@ -7,16 +7,15 @@
 //    synth  c4 | x . . x | . . x . |
 //    # comment
 //
-//  Song language (song code):
+//  Song language:
 //    @scene A
 //    bpm 128
 //    kick | x . . . | ...
 //
 //    @scene B
-//    bpm 140
 //    hat  | x x x x | ...
 //
-//    @song A×2 B×4 A×1
+//    @song A B A B+C   (A+B = parallel, space = sequential)
 // ─────────────────────────────────────────────
 
 const DEFAULT_PATTERN =
@@ -33,7 +32,7 @@ bass   c2 | x . . . | . . . . | x . . . | . . . . |`;
 const SONG_CODE_TEMPLATE =
 `# codesynth song
 # define scenes with @scene [letter], then write pattern code
-# arrange with @song [letter]×[loops] — e.g. A×2 B×4 C A×2
+# arrange with @song — space = next step, + = parallel (e.g. A B A+B)
 
 @scene A
 bpm 128
@@ -47,7 +46,7 @@ kick   | x . x . | x . x . | x . x . | x . x . |
 hat    | x x x x | x x x x | x x x x | x x x x |
 synth  c4 | x . . x | . . x . | x . . x | . x . . |
 
-@song A×2 B×4 A×1`;
+@song A A B B B B A A`;
 
 // ── Note frequencies ──────────────────────────
 
@@ -64,6 +63,7 @@ const LOOKAHEAD_MS = 25;
 const SCHEDULE_AHEAD_S = 0.12;
 const MELODIC = ['synth', 'bass', 'pad'];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const LS_KEY = 'codesynth-v2';
 
 // ── Song view state ───────────────────────────
 
@@ -73,7 +73,7 @@ let representationMode = 'ui'; // 'ui' | 'code'
 
 let patternEditorOpen = false;
 let editingSceneId    = null;
-let peReprMode        = 'code'; // 'code' | 'ui'
+let peReprMode        = 'ui';  // 'code' | 'ui' — default is ui
 let pePreviewActive   = false;
 let peIsNewScene      = false;
 let peTracks          = [];
@@ -89,11 +89,12 @@ let suppressSongEditorUpdate = false;
 // ── Scene / arrangement state ─────────────────
 
 const scenes      = [];   // { id, name, code }
-const arrangement = [];   // { sceneId, loops }
+const arrangement = [];   // { sceneIds: string[] } — each step plays listed scenes in parallel
 
-let arrPlayIdx       = 0;
-let loopsDoneInBlock = -1;
-let dragSrcIdx       = null;
+let arrPlayIdx  = -1;  // -1 = not started; incremented to 0 on first step 0
+let dragSrcIdx  = null;
+let dragSourceType = null; // 'arr-block' | 'scene-card'
+let dragSceneId    = null;
 
 // ── Playback state ────────────────────────────
 
@@ -116,6 +117,7 @@ const statusText     = document.getElementById('status-text');
 const modeUIBtn      = document.getElementById('mode-ui');
 const modeCodeBtn    = document.getElementById('mode-code');
 const newSceneBtn    = document.getElementById('new-scene-btn');
+const cleanBtn       = document.getElementById('clean-btn');
 const sceneCards     = document.getElementById('scene-cards');
 const songArrList    = document.getElementById('song-arr-list');
 const arrTotal       = document.getElementById('arr-total');
@@ -137,6 +139,49 @@ const peBpmValue     = document.getElementById('pe-bpm-value');
 const peInstSelect   = document.getElementById('pe-inst-select');
 const peNoteInput    = document.getElementById('pe-note-input');
 const peAddTrackBtn  = document.getElementById('pe-add-track-btn');
+
+// ── LocalStorage ──────────────────────────────
+
+function saveToLocalStorage() {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      scenes: scenes.map(s => ({ id: s.id, name: s.name, code: s.code })),
+      arrangement: arrangement.map(step => ({ sceneIds: [...step.sceneIds] }))
+    }));
+  } catch (e) {}
+}
+
+function loadFromLocalStorage() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data.scenes || !Array.isArray(data.scenes)) return false;
+    scenes.length = 0;
+    scenes.push(...data.scenes);
+    arrangement.length = 0;
+    for (const step of (data.arrangement || [])) {
+      if (step.sceneIds && step.sceneIds.length > 0)
+        arrangement.push({ sceneIds: [...step.sceneIds] });
+    }
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function cleanProject() {
+  if (!confirm('Reset to default? All your scenes and arrangement will be cleared.')) return;
+  if (isPlaying) stopPlaying();
+  scenes.length = 0;
+  arrangement.length = 0;
+  localStorage.removeItem(LS_KEY);
+  applySongCode(SONG_CODE_TEMPLATE);
+  syncSongEditorFromState();
+  rebuildSceneCards();
+  rebuildSongArrList();
+  setStatus('project reset');
+}
 
 // ── Pattern parser ────────────────────────────
 
@@ -203,8 +248,9 @@ function parseSongCode(code) {
     if (songMatch) {
       flushScene();
       for (const tok of songMatch[1].trim().split(/\s+/).filter(Boolean)) {
-        const m = tok.match(/^([A-Z]+)(?:[×x*](\d+))?$/i);
-        if (m) parsedArrangement.push({ sceneName: m[1].toUpperCase(), loops: m[2] ? Math.min(64, Math.max(1, parseInt(m[2]))) : 1 });
+        // Each token is a step; within a step '+' separates parallel scenes
+        const sceneNames = tok.split('+').map(s => s.toUpperCase()).filter(Boolean);
+        if (sceneNames.length > 0) parsedArrangement.push({ sceneNames });
       }
       continue;
     }
@@ -228,9 +274,11 @@ function generateSongCode() {
   }
 
   if (arrangement.length > 0) {
-    const arrStr = arrangement.map(b => {
-      const sc = scenes.find(s => s.id === b.sceneId);
-      return sc ? (b.loops === 1 ? sc.name : `${sc.name}×${b.loops}`) : null;
+    const arrStr = arrangement.map(step => {
+      const names = step.sceneIds
+        .map(id => scenes.find(s => s.id === id)?.name)
+        .filter(Boolean);
+      return names.join('+');
     }).filter(Boolean).join(' ');
     if (arrStr) lines.push(`@song ${arrStr}`);
   }
@@ -250,8 +298,10 @@ function applySongCode(code) {
 
   arrangement.length = 0;
   for (const pa of parsedArrangement) {
-    const sc = scenes.find(s => s.name === pa.sceneName);
-    if (sc) arrangement.push({ sceneId: sc.id, loops: pa.loops });
+    const sceneIds = pa.sceneNames
+      .map(name => scenes.find(s => s.name === name)?.id)
+      .filter(Boolean);
+    if (sceneIds.length > 0) arrangement.push({ sceneIds });
   }
 }
 
@@ -273,6 +323,7 @@ function syncSongEditorFromState() {
   suppressSongEditorUpdate = true;
   songEditor.value = generateSongCode();
   suppressSongEditorUpdate = false;
+  saveToLocalStorage();
 }
 
 // ── Scene info helper ─────────────────────────
@@ -391,10 +442,27 @@ function triggerTrack(track, t) {
   }
 }
 
+// ── Load tracks for an arrangement step ───────
+
+function loadTracksFromStep(idx) {
+  if (idx < 0 || idx >= arrangement.length) return;
+  const step = arrangement[idx];
+  parsedTracks = [];
+  let bpmSet = false;
+  for (const sceneId of step.sceneIds) {
+    const scene = scenes.find(s => s.id === sceneId);
+    if (scene) {
+      const result = parseCode(scene.code || '');
+      parsedTracks.push(...result.tracks);
+      if (!bpmSet) { currentBpm = result.bpm; bpmSet = true; }
+    }
+  }
+  bpmDisplay.textContent = `${currentBpm} bpm`;
+}
+
 // ── Scheduler ─────────────────────────────────
 
 function isSongPlayback() {
-  // PE preview mode: always loop the single scene
   if (patternEditorOpen && pePreviewActive) return false;
   return arrangement.length > 0;
 }
@@ -409,25 +477,15 @@ function scheduleStep(step, time) {
         currentBpm = result.bpm;
         bpmDisplay.textContent = `${currentBpm} bpm`;
       }
+      if (peReprMode === 'code') rebuildPeViz();
     } else if (isSongPlayback()) {
-      // Advance arrangement
-      loopsDoneInBlock++;
-      if (loopsDoneInBlock >= arrangement[arrPlayIdx].loops) {
-        loopsDoneInBlock = 0;
-        arrPlayIdx = (arrPlayIdx + 1) % arrangement.length;
-        const next = scenes.find(s => s.id === arrangement[arrPlayIdx].sceneId);
-        if (next) {
-          const result = parseCode(next.code || '');
-          parsedTracks = result.tracks;
-          currentBpm   = result.bpm;
-          bpmDisplay.textContent = `${currentBpm} bpm`;
-          updatePlayingHighlights();
-        }
-      }
+      // Each step plays for exactly one 16-step cycle, then advance
+      arrPlayIdx = (arrPlayIdx + 1) % arrangement.length;
+      loadTracksFromStep(arrPlayIdx);
+      updatePlayingHighlights();
     } else if (scenes.length > 0) {
       // Fallback: loop first scene
-      const first = scenes[0];
-      const result = parseCode(first.code || '');
+      const result = parseCode(scenes[0].code || '');
       parsedTracks = result.tracks;
       if (result.bpm !== currentBpm) {
         currentBpm = result.bpm;
@@ -473,14 +531,14 @@ function animateViz() {
 }
 
 function updatePlayingHighlights() {
-  // Update song-arr-list playing block
   songArrList.querySelectorAll('.song-arr-block').forEach(b => {
-    b.classList.toggle('playing', isPlaying && !patternEditorOpen && isSongPlayback() && parseInt(b.dataset.idx) === arrPlayIdx);
+    b.classList.toggle('playing',
+      isPlaying && isSongPlayback() && parseInt(b.dataset.idx) === arrPlayIdx);
   });
-  // Update scene cards playing state
   sceneCards.querySelectorAll('.scene-card').forEach(c => {
-    const isCurrentScene = isPlaying && isSongPlayback() && arrangement[arrPlayIdx]?.sceneId === c.dataset.id;
-    c.classList.toggle('playing', isCurrentScene);
+    const active = isPlaying && isSongPlayback() &&
+      arrangement[arrPlayIdx]?.sceneIds?.includes(c.dataset.id);
+    c.classList.toggle('playing', !!active);
   });
 }
 
@@ -686,7 +744,6 @@ function openPatternEditor(sceneId) {
     scene = scenes.find(s => s.id === sceneId);
     peIsNewScene = false;
   } else {
-    // New scene
     const name = getSceneLetter();
     const id   = String(Date.now() + Math.random());
     scene = { id, name, code: DEFAULT_PATTERN };
@@ -711,15 +768,15 @@ function openPatternEditor(sceneId) {
   pePreviewActive = false;
   updatePePreviewBtn();
 
-  // Reset to code mode
-  peReprMode = 'code';
-  peModeCodeBtn.classList.add('active');
-  peModeUIBtn.classList.remove('active');
+  // Default to UI mode
+  peReprMode = 'ui';
+  peModeUIBtn.classList.add('active');
+  peModeCodeBtn.classList.remove('active');
   applyPeLayout();
 
   patternEditorOpen = true;
   patternEditor.classList.add('open');
-  rebuildPeViz();
+  rebuildPeSequencer();
   setStatus(`editing scene ${scene.name}`);
 }
 
@@ -731,14 +788,11 @@ function closePatternEditor(save) {
       scene.code = peEditor.value;
     }
   } else if (peIsNewScene) {
-    // Discard the newly-created scene
     const idx = scenes.findIndex(s => s.id === editingSceneId);
     if (idx >= 0) scenes.splice(idx, 1);
   }
 
-  if (pePreviewActive && isPlaying) {
-    stopPlaying();
-  }
+  if (pePreviewActive && isPlaying) stopPlaying();
 
   pePreviewActive = false;
   patternEditorOpen = false;
@@ -764,7 +818,6 @@ pePreviewBtn.addEventListener('click', () => {
   updatePePreviewBtn();
 
   if (pePreviewActive) {
-    // Load PE tracks for playback
     const result = parseCode(peEditor.value);
     parsedTracks = result.tracks;
     currentBpm   = result.bpm;
@@ -796,7 +849,6 @@ peEditor.addEventListener('input', () => {
 // ── Song view switching ───────────────────────
 
 function setSongRepr(mode) {
-  // Parse outgoing code mode before switching
   if (representationMode === 'code') applySongCode(songEditor.value);
 
   representationMode = mode;
@@ -827,6 +879,7 @@ songEditor.addEventListener('input', () => {
     applySongCode(songEditor.value);
     rebuildSceneCards();
     rebuildSongArrList();
+    saveToLocalStorage();
   }, 300);
 });
 
@@ -848,7 +901,8 @@ function rebuildSceneCards() {
     const card = document.createElement('div');
     card.className = 'scene-card';
     card.dataset.id = scene.id;
-    if (isPlaying && isSongPlayback() && arrangement[arrPlayIdx]?.sceneId === scene.id) {
+    card.draggable = true;
+    if (isPlaying && isSongPlayback() && arrangement[arrPlayIdx]?.sceneIds?.includes(scene.id)) {
       card.classList.add('playing');
     }
 
@@ -862,6 +916,20 @@ function rebuildSceneCards() {
         <button class="card-btn" data-action="edit" data-id="${scene.id}">edit</button>
         <button class="card-btn primary" data-action="queue" data-id="${scene.id}">+ song</button>
       </div>`;
+
+    // Drag to add to arrangement step
+    card.addEventListener('dragstart', e => {
+      dragSourceType = 'scene-card';
+      dragSceneId = scene.id;
+      e.dataTransfer.effectAllowed = 'copy';
+      e.dataTransfer.setData('text/plain', scene.name);
+    });
+    card.addEventListener('dragend', () => {
+      dragSourceType = null;
+      dragSceneId = null;
+      songArrList.querySelectorAll('.drag-merge').forEach(b => b.classList.remove('drag-merge'));
+      document.getElementById('arr-drop-zone')?.classList.remove('active');
+    });
 
     sceneCards.appendChild(card);
   }
@@ -881,94 +949,148 @@ function rebuildSongArrList() {
   if (!arrangement.length) {
     const hint = document.createElement('p');
     hint.className = 'song-empty-hint';
-    hint.textContent = 'Add scenes using the [+ song] button on each scene card.';
+    hint.textContent = 'Add scenes with [+ song] or drag scene cards here.';
     songArrList.appendChild(hint);
     arrTotal.textContent = '';
-    return;
-  }
+  } else {
+    for (let i = 0; i < arrangement.length; i++) {
+      const step = arrangement[i];
+      const block = document.createElement('div');
+      block.className = 'song-arr-block';
+      block.dataset.idx = i;
+      block.draggable = true;
+      if (isPlaying && isSongPlayback() && i === arrPlayIdx) block.classList.add('playing');
 
-  for (let i = 0; i < arrangement.length; i++) {
-    const { sceneId, loops } = arrangement[i];
-    const scene = scenes.find(s => s.id === sceneId);
-    if (!scene) continue;
+      const handle = document.createElement('div');
+      handle.className = 'arr-drag-handle';
+      handle.textContent = '⠿';
+      block.appendChild(handle);
 
-    const info = getSceneInfo(scene);
-    const block = document.createElement('div');
-    block.className = 'song-arr-block';
-    block.dataset.idx = i;
-    block.draggable = true;
-    if (isPlaying && isSongPlayback() && i === arrPlayIdx) block.classList.add('playing');
+      const scenesGroup = document.createElement('div');
+      scenesGroup.className = 'arr-block-scenes';
 
-    block.innerHTML = `
-      <div class="arr-drag-handle">⠿</div>
-      <div class="arr-block-letter">${scene.name}</div>
-      <div class="arr-block-info">
-        <span class="arr-block-bpm">${info.bpm} bpm</span>
-        <span class="arr-block-tracks">${info.tracks}</span>
-      </div>
-      <div class="arr-loops-ctrl">
-        <button class="loop-btn" data-action="dec" data-idx="${i}">−</button>
-        <span class="loop-count">${loops} loop${loops !== 1 ? 's' : ''}</span>
-        <button class="loop-btn" data-action="inc" data-idx="${i}">+</button>
-      </div>
-      <button class="arr-remove" data-idx="${i}" title="Remove from song">×</button>`;
+      for (const sceneId of step.sceneIds) {
+        const scene = scenes.find(s => s.id === sceneId);
+        if (!scene) continue;
 
-    // Drag handlers
-    block.addEventListener('dragstart', e => {
-      dragSrcIdx = i;
-      e.dataTransfer.effectAllowed = 'move';
-      setTimeout(() => block.classList.add('dragging'), 0);
-    });
-    block.addEventListener('dragend', () => {
-      block.classList.remove('dragging');
-      songArrList.querySelectorAll('.drag-over').forEach(b => b.classList.remove('drag-over'));
-    });
-    block.addEventListener('dragover', e => {
-      e.preventDefault();
-      songArrList.querySelectorAll('.drag-over').forEach(b => b.classList.remove('drag-over'));
-      block.classList.add('drag-over');
-    });
-    block.addEventListener('drop', e => {
-      e.preventDefault();
-      const dropIdx = parseInt(block.dataset.idx);
-      if (dragSrcIdx !== null && dragSrcIdx !== dropIdx) {
-        const [moved] = arrangement.splice(dragSrcIdx, 1);
-        arrangement.splice(dropIdx, 0, moved);
-        rebuildSongArrList();
-        syncSongEditorFromState();
+        const chip = document.createElement('div');
+        chip.className = 'arr-scene-chip';
+
+        const letter = document.createElement('span');
+        letter.className = 'arr-chip-letter';
+        letter.textContent = scene.name;
+        letter.title = `${scene.name} — click to edit`;
+        letter.addEventListener('click', e => { e.stopPropagation(); openPatternEditor(sceneId); });
+        chip.appendChild(letter);
+
+        const removeChip = document.createElement('button');
+        removeChip.className = 'arr-chip-remove';
+        removeChip.textContent = '×';
+        removeChip.title = `Remove scene ${scene.name} from this step`;
+        removeChip.addEventListener('click', e => {
+          e.stopPropagation();
+          arrangement[i].sceneIds = arrangement[i].sceneIds.filter(id => id !== sceneId);
+          if (arrangement[i].sceneIds.length === 0) {
+            arrangement.splice(i, 1);
+            if (arrPlayIdx >= arrangement.length) arrPlayIdx = Math.max(0, arrangement.length - 1);
+          }
+          rebuildSongArrList();
+          syncSongEditorFromState();
+        });
+        chip.appendChild(removeChip);
+
+        scenesGroup.appendChild(chip);
       }
-      dragSrcIdx = null;
-    });
 
-    songArrList.appendChild(block);
+      block.appendChild(scenesGroup);
+
+      // Block drag handlers
+      block.addEventListener('dragstart', e => {
+        dragSrcIdx = i;
+        dragSourceType = 'arr-block';
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(i));
+        setTimeout(() => block.classList.add('dragging'), 0);
+      });
+      block.addEventListener('dragend', () => {
+        block.classList.remove('dragging');
+        songArrList.querySelectorAll('.drag-over, .drag-merge').forEach(b =>
+          b.classList.remove('drag-over', 'drag-merge'));
+        dragSrcIdx = null;
+        dragSourceType = null;
+        dragSceneId = null;
+      });
+      block.addEventListener('dragover', e => {
+        e.preventDefault();
+        songArrList.querySelectorAll('.drag-over, .drag-merge').forEach(b => {
+          if (b !== block) b.classList.remove('drag-over', 'drag-merge');
+        });
+        if (dragSourceType === 'scene-card') {
+          block.classList.add('drag-merge');
+          block.classList.remove('drag-over');
+        } else if (dragSourceType === 'arr-block' && dragSrcIdx !== i) {
+          block.classList.add('drag-over');
+          block.classList.remove('drag-merge');
+        }
+      });
+      block.addEventListener('dragleave', e => {
+        if (!block.contains(e.relatedTarget)) block.classList.remove('drag-over', 'drag-merge');
+      });
+      block.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        block.classList.remove('drag-over', 'drag-merge');
+
+        if (dragSourceType === 'scene-card' && dragSceneId) {
+          if (!arrangement[i].sceneIds.includes(dragSceneId)) {
+            arrangement[i].sceneIds.push(dragSceneId);
+            rebuildSongArrList();
+            syncSongEditorFromState();
+            const sc = scenes.find(s => s.id === dragSceneId);
+            if (sc) setStatus(`scene ${sc.name} layered into step ${i + 1}`);
+          }
+        } else if (dragSourceType === 'arr-block' && dragSrcIdx !== null && dragSrcIdx !== i) {
+          const insertAt = dragSrcIdx < i ? i - 1 : i;
+          const [moved] = arrangement.splice(dragSrcIdx, 1);
+          arrangement.splice(insertAt, 0, moved);
+          rebuildSongArrList();
+          syncSongEditorFromState();
+        }
+        dragSrcIdx = null;
+        dragSceneId = null;
+        dragSourceType = null;
+      });
+
+      songArrList.appendChild(block);
+    }
+
+    const total = arrangement.length;
+    arrTotal.textContent = `${total} step${total !== 1 ? 's' : ''}`;
   }
 
-  // Event delegation
-  songArrList.querySelectorAll('[data-action="dec"]').forEach(btn =>
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.idx);
-      arrangement[idx].loops = Math.max(1, arrangement[idx].loops - 1);
-      rebuildSongArrList(); syncSongEditorFromState();
-    }));
-
-  songArrList.querySelectorAll('[data-action="inc"]').forEach(btn =>
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.idx);
-      arrangement[idx].loops = Math.min(64, arrangement[idx].loops + 1);
-      rebuildSongArrList(); syncSongEditorFromState();
-    }));
-
-  songArrList.querySelectorAll('.arr-remove').forEach(btn =>
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.idx);
-      arrangement.splice(idx, 1);
-      if (arrPlayIdx >= arrangement.length) arrPlayIdx = Math.max(0, arrangement.length - 1);
-      rebuildSongArrList(); syncSongEditorFromState();
-    }));
-
-  // Total bars
-  const total = arrangement.reduce((s, b) => s + b.loops, 0);
-  arrTotal.textContent = `${total} bar${total !== 1 ? 's' : ''} total`;
+  // Drop zone at bottom — always present for adding new steps via drag
+  const dropZone = document.createElement('div');
+  dropZone.className = 'arr-drop-zone';
+  dropZone.id = 'arr-drop-zone';
+  dropZone.textContent = '+ drop scene here to add step';
+  dropZone.addEventListener('dragover', e => {
+    if (dragSourceType === 'scene-card') { e.preventDefault(); dropZone.classList.add('active'); }
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('active');
+    if (dragSourceType === 'scene-card' && dragSceneId) {
+      arrangement.push({ sceneIds: [dragSceneId] });
+      rebuildSongArrList();
+      syncSongEditorFromState();
+      const sc = scenes.find(s => s.id === dragSceneId);
+      if (sc) setStatus(`scene ${sc.name} added as new step`);
+    }
+    dragSceneId = null;
+    dragSourceType = null;
+  });
+  songArrList.appendChild(dropZone);
 }
 
 // ── Scene management ──────────────────────────
@@ -982,13 +1104,14 @@ function getSceneLetter() {
 function addToArrangement(sceneId) {
   const scene = scenes.find(s => s.id === sceneId);
   if (!scene) return;
-  arrangement.push({ sceneId, loops: 1 });
+  arrangement.push({ sceneIds: [sceneId] });
   rebuildSongArrList();
   syncSongEditorFromState();
   setStatus(`scene ${scene.name} added to song`);
 }
 
 newSceneBtn.addEventListener('click', () => openPatternEditor(null));
+cleanBtn.addEventListener('click', cleanProject);
 
 // ── Playback ──────────────────────────────────
 
@@ -997,34 +1120,24 @@ function startPlaying() {
   if (ac.state === 'suspended') ac.resume();
 
   if (patternEditorOpen && pePreviewActive) {
-    // Preview: play the PE pattern
     const result = parseCode(peEditor.value);
     parsedTracks = result.tracks;
     currentBpm   = result.bpm;
   } else if (isSongPlayback()) {
-    // Song playback
-    arrPlayIdx = 0; loopsDoneInBlock = -1;
-    const first = scenes.find(s => s.id === arrangement[0].sceneId);
-    if (first) {
-      const result = parseCode(first.code || '');
-      parsedTracks = result.tracks;
-      currentBpm   = result.bpm;
-    }
+    arrPlayIdx = -1; // scheduleStep will increment to 0 on first step 0
+    // Pre-load first step so tracks are ready before first step 0 fires
+    loadTracksFromStep(0);
     updatePlayingHighlights();
   } else if (scenes.length > 0) {
-    // Loop first scene
-    const first = scenes[0];
-    const result = parseCode(first.code || '');
+    const result = parseCode(scenes[0].code || '');
     parsedTracks = result.tracks;
     currentBpm   = result.bpm;
   } else {
-    // Nothing to play
     setStatus('no scenes — create a scene first');
     return;
   }
 
   bpmDisplay.textContent = `${currentBpm} bpm`;
-
   schedulerStep = 0;
   nextStepTime  = ac.currentTime + 0.05;
   stepQueue.length = 0;
@@ -1038,7 +1151,7 @@ function startPlaying() {
   if (patternEditorOpen && pePreviewActive) {
     setStatus(`preview: scene ${peSceneName.textContent} — loops until preview off`);
   } else if (isSongPlayback()) {
-    setStatus('playing song — arrangement runs left to right');
+    setStatus('playing song');
   } else {
     setStatus('playing — first scene loops');
   }
@@ -1074,12 +1187,14 @@ function setStatus(msg, isError = false) {
 // ── Init ──────────────────────────────────────
 
 updatePeNoteInputVisibility();
-applySongCode(SONG_CODE_TEMPLATE);
+
+const loaded = loadFromLocalStorage();
+if (!loaded) applySongCode(SONG_CODE_TEMPLATE);
+
 syncSongEditorFromState();
 rebuildSceneCards();
 rebuildSongArrList();
 
-// Set initial currentBpm from first scene
 if (scenes.length > 0) {
   const result = parseCode(scenes[0].code || '');
   currentBpm = result.bpm;

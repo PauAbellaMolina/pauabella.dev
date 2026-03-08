@@ -30,6 +30,21 @@ body {
 
 .header-controls { display: flex; align-items: center; gap: 0.75rem; }
 
+.clean-btn {
+  background: none;
+  border: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #0f4c81;
+  opacity: 0.28;
+  cursor: pointer;
+  padding: 0.2rem 0.45rem;
+  border-radius: 5px;
+  transition: opacity 0.15s, background 0.15s;
+}
+.clean-btn:hover { opacity: 0.7; background: rgba(15, 76, 129, 0.07); }
+
 /* ── Toggles ── */
 
 .toggle-group {
@@ -344,63 +359,89 @@ body {
   cursor: grab;
 }
 
-.arr-block-letter {
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #0f4c81;
-  min-width: 2rem;
+/* ── Scene chips within each arrangement step ── */
+
+.arr-block-scenes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.arr-scene-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 7px;
+  background: rgba(15, 76, 129, 0.1);
   flex-shrink: 0;
+  transition: background 0.1s;
+}
+.arr-scene-chip:hover { background: rgba(15, 76, 129, 0.18); }
+
+.arr-chip-letter {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #0f4c81;
+  cursor: pointer;
+  user-select: none;
   line-height: 1;
 }
 
-.arr-block-info { flex: 1; min-width: 0; }
-
-.arr-block-bpm {
-  display: block;
-  font-size: 0.72rem; font-weight: 600; opacity: 0.4;
-}
-
-.arr-block-tracks {
-  display: block;
-  font-size: 0.7rem; opacity: 0.5;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  margin-top: 0.1rem;
-}
-
-.arr-loops-ctrl {
-  display: flex;
+.arr-chip-remove {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: none;
+  background: #0f4c81;
+  color: #fff0db;
+  font-size: 0.58rem;
+  cursor: pointer;
+  display: none;
   align-items: center;
-  gap: 0.4rem;
+  justify-content: center;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+}
+.arr-scene-chip:hover .arr-chip-remove { display: flex; }
+
+/* ── Drag feedback ── */
+
+.song-arr-block.drag-merge {
+  border-color: #0f4c81;
+  border-style: dashed;
+  background: rgba(15, 76, 129, 0.05);
+}
+
+/* ── Drop zone at end of arrangement ── */
+
+.arr-drop-zone {
+  border: 1.5px dashed rgba(15, 76, 129, 0.2);
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #0f4c81;
+  opacity: 0.35;
   flex-shrink: 0;
+  transition: opacity 0.15s, border-color 0.15s, background 0.15s;
 }
-
-.loop-btn {
-  width: 28px; height: 28px; border-radius: 5px;
-  border: 1.5px solid rgba(15, 76, 129, 0.2);
-  background: none; color: #0f4c81;
-  font-size: 1rem; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-family: 'DM Sans', sans-serif;
-  transition: background 0.1s;
+.arr-drop-zone.active {
+  opacity: 1;
+  border-color: #0f4c81;
+  background: rgba(15, 76, 129, 0.04);
 }
-.loop-btn:hover { background: rgba(15, 76, 129, 0.08); }
-.loop-btn:active { transform: scale(0.9); }
-
-.loop-count {
-  font-size: 0.82rem; font-weight: 700;
-  min-width: 4.5rem; text-align: center; opacity: 0.65;
-}
-
-.arr-remove {
-  width: 26px; height: 26px; border: none; background: none;
-  color: #0f4c81; opacity: 0.18; font-size: 1rem; cursor: pointer;
-  border-radius: 4px; display: flex; align-items: center; justify-content: center;
-  font-family: 'DM Sans', sans-serif;
-  transition: opacity 0.1s, background 0.1s; flex-shrink: 0;
-}
-.song-arr-block:hover .arr-remove { opacity: 0.4; }
-.arr-remove:hover { opacity: 0.9 !important; background: rgba(15,76,129,0.08); }
 
 /* ══════════════════════════════════════════
    PATTERN EDITOR OVERLAY
