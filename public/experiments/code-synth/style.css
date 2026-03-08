@@ -351,33 +351,6 @@ body {
 .song-arr-block.drag-over { border-color: #0f4c81; background: rgba(15,76,129,0.1); }
 .song-arr-block.playing   { border-color: #0f4c81; background: rgba(15,76,129,0.08); }
 
-.arr-reorder-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.arr-reorder-btn {
-  background: none;
-  border: none;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.68rem;
-  color: #0f4c81;
-  opacity: 0.25;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  width: 16px;
-  height: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.12s;
-  border-radius: 3px;
-}
-.arr-reorder-btn:hover:not(:disabled) { opacity: 0.7; background: rgba(15, 76, 129, 0.1); }
-.arr-reorder-btn:disabled { opacity: 0.1; cursor: default; }
 
 /* ── Scene chips within each arrangement step ── */
 
@@ -400,11 +373,13 @@ body {
   border-radius: 7px;
   background: rgba(15, 76, 129, 0.1);
   flex-shrink: 0;
-  transition: background 0.1s;
+  transition: background 0.1s, opacity 0.12s;
   padding: 0.25rem 0;
   gap: 2px;
+  cursor: grab;
 }
 .arr-scene-chip:hover { background: rgba(15, 76, 129, 0.18); }
+.arr-scene-chip.dragging { opacity: 0.3; cursor: grabbing; }
 
 .arr-chip-letter {
   font-size: 1rem;
@@ -677,13 +652,13 @@ body {
   align-items: center;
   gap: 2px;
   flex-shrink: 0;
-  width: 56px;
+  width: 96px;
 }
 
 .seq-vol-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 56px;
+  width: 96px;
   height: 3px;
   background: rgba(15, 76, 129, 0.18);
   border-radius: 2px;

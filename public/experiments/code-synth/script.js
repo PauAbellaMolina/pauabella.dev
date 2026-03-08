@@ -74,7 +74,6 @@ let representationMode = 'ui'; // 'ui' | 'code'
 let patternEditorOpen = false;
 let editingSceneId    = null;
 let peReprMode        = 'ui';  // 'code' | 'ui' — default is ui
-let pePreviewActive   = false;
 let peIsNewScene      = false;
 let peTracks          = [];
 let peBpm             = 128;
@@ -127,7 +126,6 @@ const patternEditor  = document.getElementById('pattern-editor');
 const peSceneName    = document.getElementById('pe-scene-name');
 const peModeCodeBtn  = document.getElementById('pe-mode-code');
 const peModeUIBtn    = document.getElementById('pe-mode-ui');
-const pePreviewBtn   = document.getElementById('pe-preview-btn');
 const peCancelBtn    = document.getElementById('pe-cancel-btn');
 const peSaveBtn      = document.getElementById('pe-save-btn');
 const peEditor       = document.getElementById('pe-editor');
@@ -499,13 +497,12 @@ function loadTracksFromStep(idx) {
 // ── Scheduler ─────────────────────────────────
 
 function isSongPlayback() {
-  if (patternEditorOpen && pePreviewActive) return false;
-  return arrangement.length > 0;
+  return arrangement.length > 0 && !patternEditorOpen;
 }
 
 function scheduleStep(step, time) {
   if (step === 0) {
-    if (patternEditorOpen && pePreviewActive) {
+    if (patternEditorOpen) {
       // Re-parse PE editor for live edits during preview
       const result = parseCode(peEditor.value);
       parsedTracks = result.tracks;
@@ -558,7 +555,7 @@ function animateViz() {
       lastVizStep = curStep;
       if (patternEditorOpen) {
         if (peReprMode === 'ui') highlightPeSeqStep(curStep);
-        else highlightPeVizStep(curStep);
+        else                     highlightPeVizStep(curStep);
       }
       updatePlayingHighlights();
     }
@@ -725,7 +722,7 @@ peAddTrackBtn.addEventListener('click', handlePeAddTrack);
 peBpmDown.addEventListener('click', () => {
   peBpm = Math.max(20, peBpm - 5);
   peBpmValue.textContent = peBpm;
-  if (pePreviewActive && isPlaying) {
+  if (patternEditorOpen && isPlaying) {
     currentBpm = peBpm;
     bpmDisplay.textContent = `${currentBpm} bpm`;
   }
@@ -735,7 +732,7 @@ peBpmDown.addEventListener('click', () => {
 peBpmUp.addEventListener('click', () => {
   peBpm = Math.min(300, peBpm + 5);
   peBpmValue.textContent = peBpm;
-  if (pePreviewActive && isPlaying) {
+  if (patternEditorOpen && isPlaying) {
     currentBpm = peBpm;
     bpmDisplay.textContent = `${currentBpm} bpm`;
   }
@@ -771,11 +768,6 @@ function clearPeStepHighlights() {
 
 function applyPeLayout() {
   patternEditor.classList.toggle('pe-ui', peReprMode === 'ui');
-}
-
-function updatePePreviewBtn() {
-  pePreviewBtn.textContent = `preview: ${pePreviewActive ? 'on' : 'off'}`;
-  pePreviewBtn.classList.toggle('active', pePreviewActive);
 }
 
 // ── PE mode switch ────────────────────────────
@@ -826,8 +818,7 @@ function openPatternEditor(sceneId) {
   peBpm    = result.bpm;
   peBpmValue.textContent = peBpm;
 
-  pePreviewActive = false;
-  updatePePreviewBtn();
+  if (isPlaying) stopPlaying();
 
   // Default to UI mode
   peReprMode = 'ui';
@@ -853,9 +844,8 @@ function closePatternEditor(save) {
     if (idx >= 0) scenes.splice(idx, 1);
   }
 
-  if (pePreviewActive && isPlaying) stopPlaying();
+  if (isPlaying) stopPlaying();
 
-  pePreviewActive = false;
   patternEditorOpen = false;
   editingSceneId = null;
   patternEditor.classList.remove('open');
@@ -863,7 +853,7 @@ function closePatternEditor(save) {
   rebuildSceneCards();
   syncSongEditorFromState();
   rebuildSongArrList();
-  setStatus(save ? 'scene saved' : 'edit cancelled');
+  setStatus(save ? `scene ${peSceneName.textContent} saved` : 'edit cancelled');
 }
 
 // ── Pattern editor event listeners ───────────
@@ -873,22 +863,6 @@ peModeUIBtn.addEventListener('click',   () => { if (peReprMode !== 'ui')   setPe
 
 peCancelBtn.addEventListener('click', () => closePatternEditor(false));
 peSaveBtn.addEventListener('click',   () => closePatternEditor(true));
-
-pePreviewBtn.addEventListener('click', () => {
-  pePreviewActive = !pePreviewActive;
-  updatePePreviewBtn();
-
-  if (pePreviewActive) {
-    const result = parseCode(peEditor.value);
-    parsedTracks = result.tracks;
-    currentBpm   = result.bpm;
-    bpmDisplay.textContent = `${currentBpm} bpm`;
-    if (!isPlaying) startPlaying();
-    setStatus(`preview: scene ${peSceneName.textContent} — loops until preview off`);
-  } else {
-    if (isPlaying) stopPlaying();
-  }
-});
 
 let peDebounce = null;
 peEditor.addEventListener('input', () => {
@@ -975,7 +949,8 @@ function rebuildSceneCards() {
       </div>
       <div class="scene-card-actions">
         <button class="card-btn" data-action="edit" data-id="${scene.id}">edit</button>
-        <button class="card-btn primary" data-action="queue" data-id="${scene.id}">+ song</button>
+        <button class="card-btn" data-action="dup" data-id="${scene.id}">dup</button>
+        <button class="card-btn primary" data-action="queue" data-id="${scene.id}">+</button>
       </div>`;
 
     // Drag to add to arrangement step
@@ -997,6 +972,9 @@ function rebuildSceneCards() {
 
   sceneCards.querySelectorAll('[data-action="edit"]').forEach(btn =>
     btn.addEventListener('click', () => openPatternEditor(btn.dataset.id)));
+
+  sceneCards.querySelectorAll('[data-action="dup"]').forEach(btn =>
+    btn.addEventListener('click', () => duplicateScene(btn.dataset.id)));
 
   sceneCards.querySelectorAll('[data-action="queue"]').forEach(btn =>
     btn.addEventListener('click', () => addToArrangement(btn.dataset.id)));
@@ -1032,6 +1010,26 @@ function rebuildSongArrList() {
 
         const chip = document.createElement('div');
         chip.className = 'arr-scene-chip';
+        chip.draggable = true;
+        chip.title = `${scene.name} — drag to move, click letter to edit`;
+
+        chip.addEventListener('dragstart', e => {
+          e.stopPropagation(); // don't trigger block drag
+          dragSourceType = 'arr-chip';
+          dragSceneId    = sceneId;
+          dragSrcIdx     = i;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', sceneId);
+          setTimeout(() => chip.classList.add('dragging'), 0);
+        });
+        chip.addEventListener('dragend', () => {
+          chip.classList.remove('dragging');
+          songArrList.querySelectorAll('.drag-merge').forEach(b => b.classList.remove('drag-merge'));
+          document.getElementById('arr-drop-zone')?.classList.remove('active');
+          dragSourceType = null;
+          dragSceneId    = null;
+          dragSrcIdx     = null;
+        });
 
         const letter = document.createElement('span');
         letter.className = 'arr-chip-letter';
@@ -1080,43 +1078,7 @@ function rebuildSongArrList() {
 
       block.appendChild(scenesGroup);
 
-      // Reorder buttons
-      const reorderGroup = document.createElement('div');
-      reorderGroup.className = 'arr-reorder-btns';
-
-      const upBtn = document.createElement('button');
-      upBtn.className = 'arr-reorder-btn';
-      upBtn.textContent = '↑';
-      upBtn.title = 'Move step earlier';
-      upBtn.disabled = i === 0;
-      upBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        if (i > 0) {
-          [arrangement[i - 1], arrangement[i]] = [arrangement[i], arrangement[i - 1]];
-          rebuildSongArrList();
-          syncSongEditorFromState();
-        }
-      });
-
-      const downBtn = document.createElement('button');
-      downBtn.className = 'arr-reorder-btn';
-      downBtn.textContent = '↓';
-      downBtn.title = 'Move step later';
-      downBtn.disabled = i === arrangement.length - 1;
-      downBtn.addEventListener('click', e => {
-        e.stopPropagation();
-        if (i < arrangement.length - 1) {
-          [arrangement[i], arrangement[i + 1]] = [arrangement[i + 1], arrangement[i]];
-          rebuildSongArrList();
-          syncSongEditorFromState();
-        }
-      });
-
-      reorderGroup.appendChild(upBtn);
-      reorderGroup.appendChild(downBtn);
-      block.appendChild(reorderGroup);
-
-      // Block drag handlers — drag onto another block to MERGE (play in parallel)
+      // Block drag handlers — drag block background onto another block to MERGE (play in parallel)
       block.addEventListener('dragstart', e => {
         dragSrcIdx = i;
         dragSourceType = 'arr-block';
@@ -1137,7 +1099,10 @@ function rebuildSongArrList() {
         songArrList.querySelectorAll('.drag-over, .drag-merge').forEach(b => {
           if (b !== block) b.classList.remove('drag-over', 'drag-merge');
         });
-        if (dragSourceType === 'scene-card' || (dragSourceType === 'arr-block' && dragSrcIdx !== i)) {
+        const canMerge = dragSourceType === 'scene-card'
+          || (dragSourceType === 'arr-block' && dragSrcIdx !== i)
+          || (dragSourceType === 'arr-chip' && dragSrcIdx !== i);
+        if (canMerge) {
           block.classList.add('drag-merge');
           block.classList.remove('drag-over');
         }
@@ -1150,7 +1115,24 @@ function rebuildSongArrList() {
         e.stopPropagation();
         block.classList.remove('drag-over', 'drag-merge');
 
-        if (dragSourceType === 'scene-card' && dragSceneId) {
+        if (dragSourceType === 'arr-chip' && dragSceneId && dragSrcIdx !== i) {
+          // Move chip: remove from source block, add to this block
+          if (!arrangement[i].sceneIds.includes(dragSceneId)) {
+            arrangement[i].sceneIds.push(dragSceneId);
+            if (arrangement[i].volumes && arrangement[dragSrcIdx]?.volumes?.[dragSceneId] !== undefined) {
+              arrangement[i].volumes[dragSceneId] = arrangement[dragSrcIdx].volumes[dragSceneId];
+            }
+          }
+          arrangement[dragSrcIdx].sceneIds = arrangement[dragSrcIdx].sceneIds.filter(id => id !== dragSceneId);
+          if (arrangement[dragSrcIdx].sceneIds.length === 0) {
+            arrangement.splice(dragSrcIdx, 1);
+            if (arrPlayIdx >= arrangement.length) arrPlayIdx = Math.max(0, arrangement.length - 1);
+          }
+          rebuildSongArrList();
+          syncSongEditorFromState();
+          const sc = scenes.find(s => s.id === dragSceneId);
+          if (sc) setStatus(`scene ${sc.name} moved to step ${i + 1}`);
+        } else if (dragSourceType === 'scene-card' && dragSceneId) {
           if (!arrangement[i].sceneIds.includes(dragSceneId)) {
             arrangement[i].sceneIds.push(dragSceneId);
             rebuildSongArrList();
@@ -1188,20 +1170,29 @@ function rebuildSongArrList() {
   dropZone.id = 'arr-drop-zone';
   dropZone.textContent = '+ drop scene here to add as new step';
   dropZone.addEventListener('dragover', e => {
-    if (dragSourceType === 'scene-card') { e.preventDefault(); dropZone.classList.add('active'); }
+    if (dragSourceType === 'scene-card' || dragSourceType === 'arr-chip') { e.preventDefault(); dropZone.classList.add('active'); }
   });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('active'));
   dropZone.addEventListener('drop', e => {
     e.preventDefault();
     dropZone.classList.remove('active');
-    if (dragSourceType === 'scene-card' && dragSceneId) {
+    if ((dragSourceType === 'scene-card' || dragSourceType === 'arr-chip') && dragSceneId) {
+      if (dragSourceType === 'arr-chip' && dragSrcIdx !== null) {
+        // Move: remove from source block
+        arrangement[dragSrcIdx].sceneIds = arrangement[dragSrcIdx].sceneIds.filter(id => id !== dragSceneId);
+        if (arrangement[dragSrcIdx].sceneIds.length === 0) {
+          arrangement.splice(dragSrcIdx, 1);
+          if (arrPlayIdx >= arrangement.length) arrPlayIdx = Math.max(0, arrangement.length - 1);
+        }
+      }
       arrangement.push({ sceneIds: [dragSceneId] });
       rebuildSongArrList();
       syncSongEditorFromState();
       const sc = scenes.find(s => s.id === dragSceneId);
-      if (sc) setStatus(`scene ${sc.name} added as new step`);
+      if (sc) setStatus(`scene ${sc.name} ${dragSourceType === 'arr-chip' ? 'moved' : 'added'} as new step`);
     }
     dragSceneId = null;
+    dragSrcIdx  = null;
     dragSourceType = null;
   });
   songArrList.appendChild(dropZone);
@@ -1213,6 +1204,16 @@ function getSceneLetter() {
   return scenes.length < 26
     ? LETTERS[scenes.length]
     : LETTERS[Math.floor(scenes.length / 26) - 1] + LETTERS[scenes.length % 26];
+}
+
+function duplicateScene(sceneId) {
+  const src = scenes.find(s => s.id === sceneId);
+  if (!src) return;
+  const newScene = { id: String(Date.now() + Math.random()), name: getSceneLetter(), code: src.code };
+  scenes.push(newScene);
+  rebuildSceneCards();
+  syncSongEditorFromState();
+  setStatus(`scene ${src.name} duplicated as ${newScene.name}`);
 }
 
 function addToArrangement(sceneId) {
@@ -1233,7 +1234,7 @@ function startPlaying() {
   const ac = getCtx();
   if (ac.state === 'suspended') ac.resume();
 
-  if (patternEditorOpen && pePreviewActive) {
+  if (patternEditorOpen) {
     const result = parseCode(peEditor.value);
     parsedTracks = result.tracks;
     currentBpm   = result.bpm;
@@ -1262,8 +1263,8 @@ function startPlaying() {
   playBtn.textContent = 'stop';
   playBtn.classList.add('playing');
 
-  if (patternEditorOpen && pePreviewActive) {
-    setStatus(`preview: scene ${peSceneName.textContent} — loops until preview off`);
+  if (patternEditorOpen) {
+    setStatus(`previewing scene ${peSceneName.textContent}`);
   } else if (isSongPlayback()) {
     setStatus('playing song');
   } else {
