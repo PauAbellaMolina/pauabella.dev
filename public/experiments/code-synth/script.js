@@ -7,7 +7,7 @@
 //    synth  c4 | x . . x | . . x . |
 //    # comment
 //
-//  Song language (song code mode):
+//  Song language (song code):
 //    @scene A
 //    bpm 128
 //    kick | x . . . | ...
@@ -65,26 +65,25 @@ const SCHEDULE_AHEAD_S = 0.12;
 const MELODIC = ['synth', 'bass', 'pad'];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-// ── View state ────────────────────────────────
-// representationMode: 'code' | 'ui'
-// primaryMode: 'pattern' | 'song'
-// combined: 'pattern-code' | 'pattern-ui' | 'song-code' | 'song-ui'
+// ── Song view state ───────────────────────────
 
-let representationMode = 'code';
-let primaryMode        = 'pattern';
+let representationMode = 'ui'; // 'ui' | 'code'
 
-function currentView() { return `${primaryMode}-${representationMode}`; }
-function inPatternCode() { return primaryMode === 'pattern' && representationMode === 'code'; }
-function inPatternUI()   { return primaryMode === 'pattern' && representationMode === 'ui'; }
-function inSongCode()    { return primaryMode === 'song'    && representationMode === 'code'; }
-function inSongUI()      { return primaryMode === 'song'    && representationMode === 'ui'; }
-function inSong()        { return primaryMode === 'song'; }
+// ── Pattern editor state ──────────────────────
 
-// ── Shared pattern state ──────────────────────
+let patternEditorOpen = false;
+let editingSceneId    = null;
+let peReprMode        = 'code'; // 'code' | 'ui'
+let pePreviewActive   = false;
+let peIsNewScene      = false;
+let peTracks          = [];
+let peBpm             = 128;
+let suppressPeEditorUpdate = false;
+
+// ── Shared playback state ─────────────────────
 
 let parsedTracks = [];
 let currentBpm   = 128;
-let suppressEditorUpdate     = false;
 let suppressSongEditorUpdate = false;
 
 // ── Scene / arrangement state ─────────────────
@@ -92,9 +91,8 @@ let suppressSongEditorUpdate = false;
 const scenes      = [];   // { id, name, code }
 const arrangement = [];   // { sceneId, loops }
 
-let activeSceneId    = null;  // currently loaded scene
-let arrPlayIdx       = 0;     // which arrangement block is playing
-let loopsDoneInBlock = -1;    // -1 = not started
+let arrPlayIdx       = 0;
+let loopsDoneInBlock = -1;
 let dragSrcIdx       = null;
 
 // ── Playback state ────────────────────────────
@@ -109,33 +107,36 @@ let lastVizStep   = -1;
 
 // ── DOM refs ──────────────────────────────────
 
-const app          = document.getElementById('app');
-const editor       = document.getElementById('editor');
-const songEditor   = document.getElementById('song-editor');
-const playBtn      = document.getElementById('play-btn');
-const bpmDisplay   = document.getElementById('bpm-display');
-const viz          = document.getElementById('viz');
-const seqTracks    = document.getElementById('seq-tracks');
-const statusBar    = document.getElementById('status-bar');
-const statusText   = document.getElementById('status-text');
-const modeCodeBtn  = document.getElementById('mode-code');
-const modeUIBtn    = document.getElementById('mode-ui');
-const viewPatBtn   = document.getElementById('view-pattern');
-const viewSongBtn  = document.getElementById('view-song');
-const bpmDown      = document.getElementById('bpm-down');
-const bpmUp        = document.getElementById('bpm-up');
-const bpmValue     = document.getElementById('bpm-value');
-const instSelect   = document.getElementById('inst-select');
-const noteInput    = document.getElementById('note-input');
-const addTrackBtn  = document.getElementById('add-track-btn');
-const scenesList   = document.getElementById('scenes-list');
-const newSceneBtn  = document.getElementById('new-scene-btn');
-const sceneCards   = document.getElementById('scene-cards');
-const songArrList  = document.getElementById('song-arr-list');
-const arrTotal     = document.getElementById('arr-total');
-const sceneStrip   = document.getElementById('scene-strip');
+const app            = document.getElementById('app');
+const songEditor     = document.getElementById('song-editor');
+const playBtn        = document.getElementById('play-btn');
+const bpmDisplay     = document.getElementById('bpm-display');
+const statusBar      = document.getElementById('status-bar');
+const statusText     = document.getElementById('status-text');
+const modeUIBtn      = document.getElementById('mode-ui');
+const modeCodeBtn    = document.getElementById('mode-code');
+const newSceneBtn    = document.getElementById('new-scene-btn');
+const sceneCards     = document.getElementById('scene-cards');
+const songArrList    = document.getElementById('song-arr-list');
+const arrTotal       = document.getElementById('arr-total');
 
-editor.value = DEFAULT_PATTERN;
+// Pattern editor DOM
+const patternEditor  = document.getElementById('pattern-editor');
+const peSceneName    = document.getElementById('pe-scene-name');
+const peModeCodeBtn  = document.getElementById('pe-mode-code');
+const peModeUIBtn    = document.getElementById('pe-mode-ui');
+const pePreviewBtn   = document.getElementById('pe-preview-btn');
+const peCancelBtn    = document.getElementById('pe-cancel-btn');
+const peSaveBtn      = document.getElementById('pe-save-btn');
+const peEditor       = document.getElementById('pe-editor');
+const peViz          = document.getElementById('pe-viz');
+const peSeqTracks    = document.getElementById('pe-seq-tracks');
+const peBpmDown      = document.getElementById('pe-bpm-down');
+const peBpmUp        = document.getElementById('pe-bpm-up');
+const peBpmValue     = document.getElementById('pe-bpm-value');
+const peInstSelect   = document.getElementById('pe-inst-select');
+const peNoteInput    = document.getElementById('pe-note-input');
+const peAddTrackBtn  = document.getElementById('pe-add-track-btn');
 
 // ── Pattern parser ────────────────────────────
 
@@ -254,11 +255,11 @@ function applySongCode(code) {
   }
 }
 
-// ── Code generator (pattern state → text) ─────
+// ── Pattern code generator ────────────────────
 
-function generatePatternCode() {
-  const lines = [`bpm ${currentBpm}`, ''];
-  for (const track of parsedTracks) {
+function generatePatternCode(bpm, tracks) {
+  const lines = [`bpm ${bpm}`, ''];
+  for (const track of tracks) {
     const groups = [];
     for (let g = 0; g < 4; g++)
       groups.push(track.steps.slice(g * 4, g * 4 + 4).map(s => s ? 'x' : '.').join(' '));
@@ -268,22 +269,10 @@ function generatePatternCode() {
   return lines.join('\n');
 }
 
-function syncEditorFromState() {
-  suppressEditorUpdate = true;
-  editor.value = generatePatternCode();
-  suppressEditorUpdate = false;
-}
-
 function syncSongEditorFromState() {
   suppressSongEditorUpdate = true;
   songEditor.value = generateSongCode();
   suppressSongEditorUpdate = false;
-}
-
-function persistToActiveScene() {
-  if (!activeSceneId) return;
-  const sc = scenes.find(s => s.id === activeSceneId);
-  if (sc) sc.code = editor.value;
 }
 
 // ── Scene info helper ─────────────────────────
@@ -404,40 +393,46 @@ function triggerTrack(track, t) {
 
 // ── Scheduler ─────────────────────────────────
 
-function isSongPlayback() { return inSong() && arrangement.length > 0; }
+function isSongPlayback() {
+  // PE preview mode: always loop the single scene
+  if (patternEditorOpen && pePreviewActive) return false;
+  return arrangement.length > 0;
+}
 
 function scheduleStep(step, time) {
   if (step === 0) {
-    if (isSongPlayback()) {
-      // Advance arrangement if current block's loops are done
+    if (patternEditorOpen && pePreviewActive) {
+      // Re-parse PE editor for live edits during preview
+      const result = parseCode(peEditor.value);
+      parsedTracks = result.tracks;
+      if (result.bpm !== currentBpm) {
+        currentBpm = result.bpm;
+        bpmDisplay.textContent = `${currentBpm} bpm`;
+      }
+    } else if (isSongPlayback()) {
+      // Advance arrangement
       loopsDoneInBlock++;
       if (loopsDoneInBlock >= arrangement[arrPlayIdx].loops) {
         loopsDoneInBlock = 0;
         arrPlayIdx = (arrPlayIdx + 1) % arrangement.length;
         const next = scenes.find(s => s.id === arrangement[arrPlayIdx].sceneId);
         if (next) {
-          activeSceneId = next.id;
           const result = parseCode(next.code || '');
           parsedTracks = result.tracks;
           currentBpm   = result.bpm;
           bpmDisplay.textContent = `${currentBpm} bpm`;
-          // Mirror into pattern editor for context / live-edit affordance
-          suppressEditorUpdate = true;
-          editor.value = next.code || '';
-          suppressEditorUpdate = false;
           updatePlayingHighlights();
         }
       }
-    } else {
-      // Loop mode: re-parse pattern editor for live edits
-      const result = parseCode(editor.value);
+    } else if (scenes.length > 0) {
+      // Fallback: loop first scene
+      const first = scenes[0];
+      const result = parseCode(first.code || '');
       parsedTracks = result.tracks;
       if (result.bpm !== currentBpm) {
         currentBpm = result.bpm;
         bpmDisplay.textContent = `${currentBpm} bpm`;
-        if (inPatternUI()) bpmValue.textContent = currentBpm;
       }
-      if (inPatternCode()) rebuildViz();
     }
   }
 
@@ -467,51 +462,36 @@ function animateViz() {
 
     if (curStep !== lastVizStep) {
       lastVizStep = curStep;
-      if (inPatternUI())   highlightSeqStep(curStep);
-      else if (inPatternCode()) highlightVizStep(curStep);
+      if (patternEditorOpen) {
+        if (peReprMode === 'ui') highlightPeSeqStep(curStep);
+        else highlightPeVizStep(curStep);
+      }
+      updatePlayingHighlights();
     }
   }
   requestAnimationFrame(animateViz);
 }
 
-function highlightVizStep(step) {
-  viz.querySelectorAll('.track-row').forEach(row =>
-    row.querySelectorAll('.step').forEach((el, i) => el.classList.toggle('current', i === step)));
-}
-
-function highlightSeqStep(step) {
-  seqTracks.querySelectorAll('.seq-row').forEach(row =>
-    row.querySelectorAll('.seq-step').forEach((el, i) => el.classList.toggle('current', i === step)));
-}
-
-function clearStepHighlights() {
-  viz.querySelectorAll('.step').forEach(el => el.classList.remove('current'));
-  seqTracks.querySelectorAll('.seq-step').forEach(el => el.classList.remove('current'));
-}
-
 function updatePlayingHighlights() {
   // Update song-arr-list playing block
   songArrList.querySelectorAll('.song-arr-block').forEach(b => {
-    b.classList.toggle('playing', isPlaying && parseInt(b.dataset.idx) === arrPlayIdx);
+    b.classList.toggle('playing', isPlaying && !patternEditorOpen && isSongPlayback() && parseInt(b.dataset.idx) === arrPlayIdx);
   });
-  // Update scene-cards playing state
+  // Update scene cards playing state
   sceneCards.querySelectorAll('.scene-card').forEach(c => {
-    c.classList.toggle('playing', isPlaying && c.dataset.id === activeSceneId);
-  });
-  // Update scene strip
-  scenesList.querySelectorAll('.scene-tile').forEach(t => {
-    t.classList.toggle('active', t.dataset.id === activeSceneId);
+    const isCurrentScene = isPlaying && isSongPlayback() && arrangement[arrPlayIdx]?.sceneId === c.dataset.id;
+    c.classList.toggle('playing', isCurrentScene);
   });
 }
 
 requestAnimationFrame(animateViz);
 
-// ── Viz builder (pattern-code) ────────────────
+// ── PE viz builder ────────────────────────────
 
-function rebuildViz() {
+function rebuildPeViz() {
   const cur = lastVizStep;
-  viz.innerHTML = '';
-  for (const track of parsedTracks) {
+  peViz.innerHTML = '';
+  for (const track of peTracks) {
     const row = document.createElement('div');
     row.className = 'track-row';
 
@@ -534,18 +514,18 @@ function rebuildViz() {
       stepsEl.appendChild(group);
     }
     row.appendChild(stepsEl);
-    viz.appendChild(row);
+    peViz.appendChild(row);
   }
 }
 
-// ── Sequencer builder (pattern-ui) ───────────
+// ── PE sequencer builder ──────────────────────
 
-function rebuildSequencer() {
+function rebuildPeSequencer() {
   const cur = lastVizStep;
-  seqTracks.innerHTML = '';
+  peSeqTracks.innerHTML = '';
 
-  for (let ti = 0; ti < parsedTracks.length; ti++) {
-    const track = parsedTracks[ti];
+  for (let ti = 0; ti < peTracks.length; ti++) {
+    const track = peTracks[ti];
     const row = document.createElement('div');
     row.className = 'seq-row';
 
@@ -566,7 +546,7 @@ function rebuildSequencer() {
         btn.className = `seq-step ${track.steps[i] ? 'on' : 'off'}${i === cur ? ' current' : ''}`;
         btn.dataset.track = ti;
         btn.dataset.step  = i;
-        btn.addEventListener('click', handleStepClick);
+        btn.addEventListener('click', handlePeStepClick);
         group.appendChild(btn);
       }
       stepsEl.appendChild(group);
@@ -577,98 +557,278 @@ function rebuildSequencer() {
     del.className = 'seq-delete';
     del.textContent = '×';
     del.dataset.track = ti;
-    del.addEventListener('click', handleDeleteTrack);
+    del.addEventListener('click', handlePeDeleteTrack);
     row.appendChild(del);
 
-    seqTracks.appendChild(row);
+    peSeqTracks.appendChild(row);
   }
 }
 
-// ── Sequencer interactions ────────────────────
+// ── PE sequencer interactions ─────────────────
 
-function handleStepClick(e) {
+function handlePeStepClick(e) {
   const ti = parseInt(e.currentTarget.dataset.track);
   const si = parseInt(e.currentTarget.dataset.step);
-  parsedTracks[ti].steps[si] = !parsedTracks[ti].steps[si];
-  e.currentTarget.classList.toggle('on',  parsedTracks[ti].steps[si]);
-  e.currentTarget.classList.toggle('off', !parsedTracks[ti].steps[si]);
-  syncEditorFromState();
-  persistToActiveScene();
-  syncSongEditorFromState();
+  peTracks[ti].steps[si] = !peTracks[ti].steps[si];
+  e.currentTarget.classList.toggle('on',  peTracks[ti].steps[si]);
+  e.currentTarget.classList.toggle('off', !peTracks[ti].steps[si]);
+  syncPeCodeFromState();
 }
 
-function handleDeleteTrack(e) {
+function handlePeDeleteTrack(e) {
   const ti = parseInt(e.currentTarget.dataset.track);
-  parsedTracks.splice(ti, 1);
-  rebuildSequencer();
-  syncEditorFromState();
-  persistToActiveScene();
-  syncSongEditorFromState();
+  peTracks.splice(ti, 1);
+  rebuildPeSequencer();
+  syncPeCodeFromState();
 }
 
-function handleAddTrack() {
-  const instrument = instSelect.value;
+function handlePeAddTrack() {
+  const instrument = peInstSelect.value;
   let note = null;
   if (MELODIC.includes(instrument)) {
-    const raw = noteInput.value.trim().toLowerCase();
+    const raw = peNoteInput.value.trim().toLowerCase();
     note = NOTE_FREQ[raw] ? raw : 'c4';
   }
   const label = note ? `${instrument} ${note}` : instrument;
-  parsedTracks.push({ instrument, note, steps: Array(STEPS).fill(false), label });
-  rebuildSequencer();
-  syncEditorFromState();
-  persistToActiveScene();
-  syncSongEditorFromState();
-  seqTracks.lastElementChild?.scrollIntoView({ block: 'nearest' });
+  peTracks.push({ instrument, note, steps: Array(STEPS).fill(false), label });
+  rebuildPeSequencer();
+  syncPeCodeFromState();
+  peSeqTracks.lastElementChild?.scrollIntoView({ block: 'nearest' });
 }
 
-function updateNoteInputVisibility() {
-  noteInput.style.display = MELODIC.includes(instSelect.value) ? '' : 'none';
+function updatePeNoteInputVisibility() {
+  peNoteInput.style.display = MELODIC.includes(peInstSelect.value) ? '' : 'none';
 }
 
-instSelect.addEventListener('change', updateNoteInputVisibility);
-addTrackBtn.addEventListener('click', handleAddTrack);
+peInstSelect.addEventListener('change', updatePeNoteInputVisibility);
+peAddTrackBtn.addEventListener('click', handlePeAddTrack);
 
-bpmDown.addEventListener('click', () => {
-  currentBpm = Math.max(20, currentBpm - 5);
-  bpmValue.textContent = currentBpm;
-  bpmDisplay.textContent = `${currentBpm} bpm`;
-  syncEditorFromState(); persistToActiveScene(); syncSongEditorFromState();
+peBpmDown.addEventListener('click', () => {
+  peBpm = Math.max(20, peBpm - 5);
+  peBpmValue.textContent = peBpm;
+  if (pePreviewActive && isPlaying) {
+    currentBpm = peBpm;
+    bpmDisplay.textContent = `${currentBpm} bpm`;
+  }
+  syncPeCodeFromState();
 });
 
-bpmUp.addEventListener('click', () => {
-  currentBpm = Math.min(300, currentBpm + 5);
-  bpmValue.textContent = currentBpm;
-  bpmDisplay.textContent = `${currentBpm} bpm`;
-  syncEditorFromState(); persistToActiveScene(); syncSongEditorFromState();
+peBpmUp.addEventListener('click', () => {
+  peBpm = Math.min(300, peBpm + 5);
+  peBpmValue.textContent = peBpm;
+  if (pePreviewActive && isPlaying) {
+    currentBpm = peBpm;
+    bpmDisplay.textContent = `${currentBpm} bpm`;
+  }
+  syncPeCodeFromState();
 });
 
-// ── Scene strip (pattern modes) ───────────────
+// ── PE code sync ──────────────────────────────
 
-function rebuildSceneStrip() {
-  scenesList.innerHTML = '';
-  for (const scene of scenes) {
-    const tile = document.createElement('div');
-    tile.className = 'scene-tile' + (scene.id === activeSceneId ? ' active' : '');
-    tile.dataset.id = scene.id;
+function syncPeCodeFromState() {
+  suppressPeEditorUpdate = true;
+  peEditor.value = generatePatternCode(peBpm, peTracks);
+  suppressPeEditorUpdate = false;
+}
 
-    const loadBtn = document.createElement('button');
-    loadBtn.className = 'scene-load-btn';
-    loadBtn.textContent = scene.name;
-    loadBtn.title = `Load scene ${scene.name}`;
-    loadBtn.addEventListener('click', () => loadScene(scene.id));
+// ── PE step highlights ────────────────────────
 
-    const queueBtn = document.createElement('button');
-    queueBtn.className = 'scene-queue-btn';
-    queueBtn.textContent = '›';
-    queueBtn.title = `Add scene ${scene.name} to song`;
-    queueBtn.addEventListener('click', e => { e.stopPropagation(); addToArrangement(scene.id); });
+function highlightPeVizStep(step) {
+  peViz.querySelectorAll('.track-row').forEach(row =>
+    row.querySelectorAll('.step').forEach((el, i) => el.classList.toggle('current', i === step)));
+}
 
-    tile.appendChild(loadBtn);
-    tile.appendChild(queueBtn);
-    scenesList.appendChild(tile);
+function highlightPeSeqStep(step) {
+  peSeqTracks.querySelectorAll('.seq-row').forEach(row =>
+    row.querySelectorAll('.seq-step').forEach((el, i) => el.classList.toggle('current', i === step)));
+}
+
+function clearPeStepHighlights() {
+  peViz.querySelectorAll('.step').forEach(el => el.classList.remove('current'));
+  peSeqTracks.querySelectorAll('.seq-step').forEach(el => el.classList.remove('current'));
+}
+
+// ── PE layout ─────────────────────────────────
+
+function applyPeLayout() {
+  patternEditor.classList.toggle('pe-ui', peReprMode === 'ui');
+}
+
+function updatePePreviewBtn() {
+  pePreviewBtn.textContent = `preview: ${pePreviewActive ? 'on' : 'off'}`;
+  pePreviewBtn.classList.toggle('active', pePreviewActive);
+}
+
+// ── PE mode switch ────────────────────────────
+
+function setPeReprMode(mode) {
+  if (peReprMode === 'ui') syncPeCodeFromState();
+  peReprMode = mode;
+  applyPeLayout();
+  peModeCodeBtn.classList.toggle('active', mode === 'code');
+  peModeUIBtn.classList.toggle('active',   mode === 'ui');
+  if (mode === 'code') {
+    rebuildPeViz();
+  } else {
+    const result = parseCode(peEditor.value);
+    peTracks = result.tracks;
+    peBpm    = result.bpm;
+    peBpmValue.textContent = peBpm;
+    rebuildPeSequencer();
   }
 }
+
+// ── Open / close pattern editor ───────────────
+
+function openPatternEditor(sceneId) {
+  let scene;
+  if (sceneId) {
+    scene = scenes.find(s => s.id === sceneId);
+    peIsNewScene = false;
+  } else {
+    // New scene
+    const name = getSceneLetter();
+    const id   = String(Date.now() + Math.random());
+    scene = { id, name, code: DEFAULT_PATTERN };
+    scenes.push(scene);
+    peIsNewScene = true;
+    rebuildSceneCards();
+    syncSongEditorFromState();
+  }
+
+  editingSceneId = scene.id;
+  peSceneName.textContent = scene.name;
+
+  suppressPeEditorUpdate = true;
+  peEditor.value = scene.code || DEFAULT_PATTERN;
+  suppressPeEditorUpdate = false;
+
+  const result = parseCode(peEditor.value);
+  peTracks = result.tracks;
+  peBpm    = result.bpm;
+  peBpmValue.textContent = peBpm;
+
+  pePreviewActive = false;
+  updatePePreviewBtn();
+
+  // Reset to code mode
+  peReprMode = 'code';
+  peModeCodeBtn.classList.add('active');
+  peModeUIBtn.classList.remove('active');
+  applyPeLayout();
+
+  patternEditorOpen = true;
+  patternEditor.classList.add('open');
+  rebuildPeViz();
+  setStatus(`editing scene ${scene.name}`);
+}
+
+function closePatternEditor(save) {
+  if (save) {
+    const scene = scenes.find(s => s.id === editingSceneId);
+    if (scene) {
+      if (peReprMode === 'ui') syncPeCodeFromState();
+      scene.code = peEditor.value;
+    }
+  } else if (peIsNewScene) {
+    // Discard the newly-created scene
+    const idx = scenes.findIndex(s => s.id === editingSceneId);
+    if (idx >= 0) scenes.splice(idx, 1);
+  }
+
+  if (pePreviewActive && isPlaying) {
+    stopPlaying();
+  }
+
+  pePreviewActive = false;
+  patternEditorOpen = false;
+  editingSceneId = null;
+  patternEditor.classList.remove('open');
+
+  rebuildSceneCards();
+  syncSongEditorFromState();
+  rebuildSongArrList();
+  setStatus(save ? 'scene saved' : 'edit cancelled');
+}
+
+// ── Pattern editor event listeners ───────────
+
+peModeCodeBtn.addEventListener('click', () => { if (peReprMode !== 'code') setPeReprMode('code'); });
+peModeUIBtn.addEventListener('click',   () => { if (peReprMode !== 'ui')   setPeReprMode('ui'); });
+
+peCancelBtn.addEventListener('click', () => closePatternEditor(false));
+peSaveBtn.addEventListener('click',   () => closePatternEditor(true));
+
+pePreviewBtn.addEventListener('click', () => {
+  pePreviewActive = !pePreviewActive;
+  updatePePreviewBtn();
+
+  if (pePreviewActive) {
+    // Load PE tracks for playback
+    const result = parseCode(peEditor.value);
+    parsedTracks = result.tracks;
+    currentBpm   = result.bpm;
+    bpmDisplay.textContent = `${currentBpm} bpm`;
+    if (!isPlaying) startPlaying();
+    setStatus(`preview: scene ${peSceneName.textContent} — loops until preview off`);
+  } else {
+    if (isPlaying) stopPlaying();
+  }
+});
+
+let peDebounce = null;
+peEditor.addEventListener('input', () => {
+  if (suppressPeEditorUpdate) return;
+  clearTimeout(peDebounce);
+  peDebounce = setTimeout(() => {
+    try {
+      const result = parseCode(peEditor.value);
+      peTracks = result.tracks;
+      peBpm    = result.bpm;
+      peBpmValue.textContent = peBpm;
+      if (peReprMode === 'code') rebuildPeViz();
+      else rebuildPeSequencer();
+      statusBar.classList.remove('error');
+    } catch (err) { setStatus('parse error: ' + err.message, true); }
+  }, 200);
+});
+
+// ── Song view switching ───────────────────────
+
+function setSongRepr(mode) {
+  // Parse outgoing code mode before switching
+  if (representationMode === 'code') applySongCode(songEditor.value);
+
+  representationMode = mode;
+  app.classList.toggle('song-code', mode === 'code');
+
+  if (mode === 'code') {
+    syncSongEditorFromState();
+  } else {
+    rebuildSceneCards();
+    rebuildSongArrList();
+    syncSongEditorFromState();
+  }
+
+  modeUIBtn.classList.toggle('active',   mode === 'ui');
+  modeCodeBtn.classList.toggle('active', mode === 'code');
+}
+
+modeUIBtn.addEventListener('click',   () => { if (representationMode !== 'ui')   setSongRepr('ui'); });
+modeCodeBtn.addEventListener('click', () => { if (representationMode !== 'code') setSongRepr('code'); });
+
+// ── Song code editor live input ───────────────
+
+let songDebounce = null;
+songEditor.addEventListener('input', () => {
+  if (suppressSongEditorUpdate) return;
+  clearTimeout(songDebounce);
+  songDebounce = setTimeout(() => {
+    applySongCode(songEditor.value);
+    rebuildSceneCards();
+    rebuildSongArrList();
+  }, 300);
+});
 
 // ── Song UI: scene cards ──────────────────────
 
@@ -678,7 +838,7 @@ function rebuildSceneCards() {
   if (!scenes.length) {
     const hint = document.createElement('p');
     hint.className = 'song-empty-hint';
-    hint.textContent = 'Design patterns in pattern mode, save them as scenes with [+], then arrange them here.';
+    hint.textContent = 'Press [+ new] to create your first scene.';
     sceneCards.appendChild(hint);
     return;
   }
@@ -688,8 +848,9 @@ function rebuildSceneCards() {
     const card = document.createElement('div');
     card.className = 'scene-card';
     card.dataset.id = scene.id;
-    if (scene.id === activeSceneId) card.classList.add('active');
-    if (isPlaying && arrangement[arrPlayIdx]?.sceneId === scene.id) card.classList.add('playing');
+    if (isPlaying && isSongPlayback() && arrangement[arrPlayIdx]?.sceneId === scene.id) {
+      card.classList.add('playing');
+    }
 
     card.innerHTML = `
       <div class="scene-card-letter">${scene.name}</div>
@@ -698,19 +859,15 @@ function rebuildSceneCards() {
         <span class="scene-card-tracks">${info.tracks}</span>
       </div>
       <div class="scene-card-actions">
-        <button class="card-btn" data-action="load" data-id="${scene.id}">load</button>
+        <button class="card-btn" data-action="edit" data-id="${scene.id}">edit</button>
         <button class="card-btn primary" data-action="queue" data-id="${scene.id}">+ song</button>
       </div>`;
 
     sceneCards.appendChild(card);
   }
 
-  sceneCards.querySelectorAll('[data-action="load"]').forEach(btn =>
-    btn.addEventListener('click', () => {
-      loadScene(btn.dataset.id);
-      // Switch to pattern to edit
-      setPrimaryMode('pattern');
-    }));
+  sceneCards.querySelectorAll('[data-action="edit"]').forEach(btn =>
+    btn.addEventListener('click', () => openPatternEditor(btn.dataset.id)));
 
   sceneCards.querySelectorAll('[data-action="queue"]').forEach(btn =>
     btn.addEventListener('click', () => addToArrangement(btn.dataset.id)));
@@ -744,7 +901,7 @@ function rebuildSongArrList() {
 
     block.innerHTML = `
       <div class="arr-drag-handle">⠿</div>
-      <div class="arr-block-letter" data-id="${scene.id}" title="Load scene ${scene.name}">${scene.name}</div>
+      <div class="arr-block-letter">${scene.name}</div>
       <div class="arr-block-info">
         <span class="arr-block-bpm">${info.bpm} bpm</span>
         <span class="arr-block-tracks">${info.tracks}</span>
@@ -809,13 +966,6 @@ function rebuildSongArrList() {
       rebuildSongArrList(); syncSongEditorFromState();
     }));
 
-  // Click letter to load scene and switch to pattern
-  songArrList.querySelectorAll('.arr-block-letter').forEach(el =>
-    el.addEventListener('click', () => {
-      loadScene(el.dataset.id);
-      setPrimaryMode('pattern');
-    }));
-
   // Total bars
   const total = arrangement.reduce((s, b) => s + b.loops, 0);
   arrTotal.textContent = `${total} bar${total !== 1 ? 's' : ''} total`;
@@ -824,42 +974,9 @@ function rebuildSongArrList() {
 // ── Scene management ──────────────────────────
 
 function getSceneLetter() {
-  return scenes.length < 26 ? LETTERS[scenes.length] : LETTERS[Math.floor(scenes.length / 26) - 1] + LETTERS[scenes.length % 26];
-}
-
-function saveCurrentAsScene() {
-  if (inPatternUI()) syncEditorFromState();
-  const code = editor.value;
-  const name = getSceneLetter();
-  const id   = String(Date.now() + Math.random());
-  scenes.push({ id, name, code });
-  activeSceneId = id;
-  rebuildSceneStrip();
-  rebuildSceneCards();
-  syncSongEditorFromState();
-  setStatus(`scene ${name} saved — [›] to add to song`);
-}
-
-function loadScene(id) {
-  const scene = scenes.find(s => s.id === id);
-  if (!scene) return;
-  activeSceneId = id;
-
-  suppressEditorUpdate = true;
-  editor.value = scene.code || '';
-  suppressEditorUpdate = false;
-
-  const result = parseCode(scene.code || '');
-  parsedTracks = result.tracks;
-  currentBpm   = result.bpm;
-  bpmDisplay.textContent = `${currentBpm} bpm`;
-
-  if (inPatternUI()) { bpmValue.textContent = currentBpm; rebuildSequencer(); }
-  else { rebuildViz(); }
-
-  rebuildSceneStrip();
-  rebuildSceneCards();
-  setStatus(`scene ${scene.name} loaded`);
+  return scenes.length < 26
+    ? LETTERS[scenes.length]
+    : LETTERS[Math.floor(scenes.length / 26) - 1] + LETTERS[scenes.length % 26];
 }
 
 function addToArrangement(sceneId) {
@@ -871,71 +988,7 @@ function addToArrangement(sceneId) {
   setStatus(`scene ${scene.name} added to song`);
 }
 
-newSceneBtn.addEventListener('click', saveCurrentAsScene);
-
-// ── View switching ────────────────────────────
-
-function setRepresentation(mode) {
-  // Sync outgoing view
-  if (inPatternUI()) { syncEditorFromState(); persistToActiveScene(); }
-  if (inSongCode())  { applySongCode(songEditor.value); }
-
-  representationMode = mode;
-  applyViewClasses();
-  initCurrentView();
-  updateToggleStates();
-}
-
-function setPrimaryMode(mode) {
-  // Sync outgoing view
-  if (inPatternUI()) { syncEditorFromState(); persistToActiveScene(); }
-  if (inSongCode())  { applySongCode(songEditor.value); }
-
-  primaryMode = mode;
-  applyViewClasses();
-  initCurrentView();
-  updateToggleStates();
-}
-
-function applyViewClasses() {
-  app.className = 'app';
-  const v = currentView();
-  if (v !== 'pattern-code') app.classList.add(v); // e.g. 'pattern-ui', 'song-code', 'song-ui'
-}
-
-function initCurrentView() {
-  const v = currentView();
-
-  if (v === 'pattern-code') {
-    rebuildViz();
-  } else if (v === 'pattern-ui') {
-    const result = parseCode(editor.value);
-    parsedTracks = result.tracks; currentBpm = result.bpm;
-    bpmValue.textContent = currentBpm;
-    rebuildSequencer();
-  } else if (v === 'song-code') {
-    suppressSongEditorUpdate = true;
-    songEditor.value = scenes.length ? generateSongCode() : SONG_CODE_TEMPLATE;
-    suppressSongEditorUpdate = false;
-  } else if (v === 'song-ui') {
-    rebuildSceneCards();
-    rebuildSongArrList();
-  }
-
-  rebuildSceneStrip();
-}
-
-function updateToggleStates() {
-  modeCodeBtn.classList.toggle('active', representationMode === 'code');
-  modeUIBtn.classList.toggle('active',   representationMode === 'ui');
-  viewPatBtn.classList.toggle('active',  primaryMode === 'pattern');
-  viewSongBtn.classList.toggle('active', primaryMode === 'song');
-}
-
-modeCodeBtn.addEventListener('click', () => { if (representationMode !== 'code') setRepresentation('code'); });
-modeUIBtn.addEventListener('click',   () => { if (representationMode !== 'ui')   setRepresentation('ui'); });
-viewPatBtn.addEventListener('click',  () => { if (primaryMode !== 'pattern') setPrimaryMode('pattern'); });
-viewSongBtn.addEventListener('click', () => { if (primaryMode !== 'song')    setPrimaryMode('song'); });
+newSceneBtn.addEventListener('click', () => openPatternEditor(null));
 
 // ── Playback ──────────────────────────────────
 
@@ -943,42 +996,63 @@ function startPlaying() {
   const ac = getCtx();
   if (ac.state === 'suspended') ac.resume();
 
-  // In song mode with arrangement: start from first block
-  if (isSongPlayback()) {
+  if (patternEditorOpen && pePreviewActive) {
+    // Preview: play the PE pattern
+    const result = parseCode(peEditor.value);
+    parsedTracks = result.tracks;
+    currentBpm   = result.bpm;
+  } else if (isSongPlayback()) {
+    // Song playback
     arrPlayIdx = 0; loopsDoneInBlock = -1;
     const first = scenes.find(s => s.id === arrangement[0].sceneId);
     if (first) {
-      activeSceneId = first.id;
       const result = parseCode(first.code || '');
-      parsedTracks = result.tracks; currentBpm = result.bpm;
-      suppressEditorUpdate = true; editor.value = first.code || ''; suppressEditorUpdate = false;
+      parsedTracks = result.tracks;
+      currentBpm   = result.bpm;
     }
     updatePlayingHighlights();
+  } else if (scenes.length > 0) {
+    // Loop first scene
+    const first = scenes[0];
+    const result = parseCode(first.code || '');
+    parsedTracks = result.tracks;
+    currentBpm   = result.bpm;
   } else {
-    const result = parseCode(editor.value);
-    parsedTracks = result.tracks; currentBpm = result.bpm;
+    // Nothing to play
+    setStatus('no scenes — create a scene first');
+    return;
   }
 
   bpmDisplay.textContent = `${currentBpm} bpm`;
-  if (inPatternUI()) { bpmValue.textContent = currentBpm; rebuildSequencer(); }
-  else if (inPatternCode()) rebuildViz();
 
-  schedulerStep = 0; nextStepTime = ac.currentTime + 0.05;
-  stepQueue.length = 0; lastVizStep = -1;
-  isPlaying = true;
+  schedulerStep = 0;
+  nextStepTime  = ac.currentTime + 0.05;
+  stepQueue.length = 0;
+  lastVizStep   = -1;
+  isPlaying     = true;
   scheduler();
 
   playBtn.textContent = 'stop';
   playBtn.classList.add('playing');
-  setStatus(isSongPlayback() ? 'playing song — arrangement runs left to right' : 'playing — edits apply on next loop');
+
+  if (patternEditorOpen && pePreviewActive) {
+    setStatus(`preview: scene ${peSceneName.textContent} — loops until preview off`);
+  } else if (isSongPlayback()) {
+    setStatus('playing song — arrangement runs left to right');
+  } else {
+    setStatus('playing — first scene loops');
+  }
 }
 
 function stopPlaying() {
   clearTimeout(timerID);
-  isPlaying = false; stepQueue.length = 0; lastVizStep = -1;
-  clearStepHighlights();
+  isPlaying = false;
+  stepQueue.length = 0;
+  lastVizStep = -1;
+  clearPeStepHighlights();
   updatePlayingHighlights();
-  playBtn.textContent = 'play'; playBtn.classList.remove('playing');
+  playBtn.textContent = 'play';
+  playBtn.classList.remove('playing');
   setStatus('stopped');
 }
 
@@ -986,39 +1060,8 @@ function togglePlay() { if (isPlaying) stopPlaying(); else startPlaying(); }
 
 playBtn.addEventListener('click', togglePlay);
 document.addEventListener('keydown', e => {
-  if (e.target === editor || e.target === songEditor) return;
+  if (e.target === songEditor || e.target === peEditor) return;
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-});
-
-// ── Live editing ──────────────────────────────
-
-let patDebounce = null;
-editor.addEventListener('input', () => {
-  if (suppressEditorUpdate) return;
-  clearTimeout(patDebounce);
-  patDebounce = setTimeout(() => {
-    try {
-      const result = parseCode(editor.value);
-      parsedTracks = result.tracks; currentBpm = result.bpm;
-      bpmDisplay.textContent = `${currentBpm} bpm`;
-      if (inPatternUI()) { bpmValue.textContent = currentBpm; rebuildSequencer(); }
-      else rebuildViz();
-      persistToActiveScene();
-      syncSongEditorFromState();
-      statusBar.classList.remove('error');
-    } catch (err) { setStatus('parse error: ' + err.message, true); }
-  }, 200);
-});
-
-let songDebounce = null;
-songEditor.addEventListener('input', () => {
-  if (suppressSongEditorUpdate) return;
-  clearTimeout(songDebounce);
-  songDebounce = setTimeout(() => {
-    applySongCode(songEditor.value);
-    rebuildSceneStrip();
-    if (inSongUI()) { rebuildSceneCards(); rebuildSongArrList(); }
-  }, 300);
 });
 
 // ── Status ────────────────────────────────────
@@ -1030,14 +1073,17 @@ function setStatus(msg, isError = false) {
 
 // ── Init ──────────────────────────────────────
 
-const init = parseCode(editor.value);
-parsedTracks = init.tracks; currentBpm = init.bpm;
-bpmDisplay.textContent = `${currentBpm} bpm`;
-bpmValue.textContent = currentBpm;
-
-updateNoteInputVisibility();
-rebuildViz();
-rebuildSceneStrip();
+updatePeNoteInputVisibility();
+applySongCode(SONG_CODE_TEMPLATE);
+syncSongEditorFromState();
 rebuildSceneCards();
 rebuildSongArrList();
+
+// Set initial currentBpm from first scene
+if (scenes.length > 0) {
+  const result = parseCode(scenes[0].code || '');
+  currentBpm = result.bpm;
+  bpmDisplay.textContent = `${currentBpm} bpm`;
+}
+
 setStatus('ready — press play or hit space');
