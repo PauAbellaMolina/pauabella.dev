@@ -94,7 +94,11 @@ const LOOKAHEAD_MS = 25;
 const SCHEDULE_AHEAD_S = 0.12;
 const MELODIC = ['synth', 'bass', 'pad'];
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-const LS_KEY = 'codesynth-v2';
+const LS_KEY = 'codesynth-v3';
+
+const STEP_WIDTH_MIN = 44;
+const STEP_WIDTH_MAX = 180;
+let stepWidth = 80;
 
 // ── Song view state ───────────────────────────
 
@@ -169,13 +173,37 @@ const peInstSelect   = document.getElementById('pe-inst-select');
 const peNoteInput    = document.getElementById('pe-note-input');
 const peAddTrackBtn  = document.getElementById('pe-add-track-btn');
 
+// ── Timeline zoom ─────────────────────────────
+
+function applyStepWidth(targetScrollLeft) {
+  songArrList.style.setProperty('--step-width', `${stepWidth}px`);
+  if (targetScrollLeft !== undefined) {
+    requestAnimationFrame(() => { songArrList.scrollLeft = targetScrollLeft; });
+  }
+}
+
+songArrList.addEventListener('wheel', e => {
+  if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+    e.preventDefault();
+    const prev = stepWidth;
+    stepWidth = Math.min(STEP_WIDTH_MAX, Math.max(STEP_WIDTH_MIN, stepWidth + (e.deltaY < 0 ? 5 : -5)));
+    if (stepWidth !== prev) {
+      const rect = songArrList.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const pivotContent = songArrList.scrollLeft + mouseX;
+      applyStepWidth(Math.max(0, pivotContent * (stepWidth / prev) - mouseX));
+    }
+  }
+}, { passive: false });
+
 // ── LocalStorage ──────────────────────────────
 
 function saveToLocalStorage() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       scenes: scenes.map(s => ({ id: s.id, name: s.name, code: s.code })),
-      arrangement: arrangement.map(step => ({ sceneIds: [...step.sceneIds], volumes: step.volumes ? {...step.volumes} : undefined }))
+      arrangement: arrangement.map(step => ({ sceneIds: [...step.sceneIds], volumes: step.volumes ? {...step.volumes} : undefined })),
+      stepWidth
     }));
   } catch (e) {}
 }
@@ -186,6 +214,7 @@ function loadFromLocalStorage() {
     if (!raw) return false;
     const data = JSON.parse(raw);
     if (!data.scenes || !Array.isArray(data.scenes)) return false;
+    if (data.stepWidth) stepWidth = Math.min(STEP_WIDTH_MAX, Math.max(STEP_WIDTH_MIN, data.stepWidth));
     scenes.length = 0;
     scenes.push(...data.scenes);
     arrangement.length = 0;
@@ -1019,7 +1048,7 @@ function rebuildSongArrList() {
   if (!arrangement.length) {
     const hint = document.createElement('p');
     hint.className = 'song-empty-hint';
-    hint.textContent = 'Add scenes with [+ song] or drag scene cards here.';
+    hint.textContent = 'drag scenes here to build your song';
     songArrList.appendChild(hint);
     arrTotal.textContent = '';
   } else {
@@ -1031,6 +1060,11 @@ function rebuildSongArrList() {
       block.draggable = true;
       block.title = 'Drag onto another step to merge (play in parallel)';
       if (isPlaying && isSongPlayback() && i === arrPlayIdx) block.classList.add('playing');
+
+      const stepNum = document.createElement('div');
+      stepNum.className = 'arr-step-num';
+      stepNum.textContent = i + 1;
+      block.appendChild(stepNum);
 
       const scenesGroup = document.createElement('div');
       scenesGroup.className = 'arr-block-scenes';
@@ -1199,7 +1233,7 @@ function rebuildSongArrList() {
   const dropZone = document.createElement('div');
   dropZone.className = 'arr-drop-zone';
   dropZone.id = 'arr-drop-zone';
-  dropZone.textContent = '+ drop scene here to add as new step';
+  dropZone.textContent = '+ drop here';
   dropZone.addEventListener('dragover', e => {
     if (dragSourceType === 'scene-card' || dragSourceType === 'arr-chip') { e.preventDefault(); dropZone.classList.add('active'); }
   });
@@ -1227,6 +1261,7 @@ function rebuildSongArrList() {
     dragSourceType = null;
   });
   songArrList.appendChild(dropZone);
+  applyStepWidth();
 }
 
 // ── Scene management ──────────────────────────
