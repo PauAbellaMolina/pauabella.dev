@@ -146,7 +146,7 @@ function saveToLocalStorage() {
   try {
     localStorage.setItem(LS_KEY, JSON.stringify({
       scenes: scenes.map(s => ({ id: s.id, name: s.name, code: s.code })),
-      arrangement: arrangement.map(step => ({ sceneIds: [...step.sceneIds] }))
+      arrangement: arrangement.map(step => ({ sceneIds: [...step.sceneIds], volumes: step.volumes ? {...step.volumes} : undefined }))
     }));
   } catch (e) {}
 }
@@ -162,7 +162,7 @@ function loadFromLocalStorage() {
     arrangement.length = 0;
     for (const step of (data.arrangement || [])) {
       if (step.sceneIds && step.sceneIds.length > 0)
-        arrangement.push({ sceneIds: [...step.sceneIds] });
+        arrangement.push({ sceneIds: [...step.sceneIds], volumes: step.volumes ? {...step.volumes} : undefined });
     }
     return true;
   } catch (e) {
@@ -206,6 +206,14 @@ function parseCode(code) {
     if (NOTE_RE.test(tokens[1])) { note = tokens[1].toLowerCase(); patternTokens = tokens.slice(2); }
     else { patternTokens = tokens.slice(1); }
 
+    // Parse optional vol:X token
+    let volume = 1.0;
+    const volIdx = patternTokens.findIndex(t => /^vol:[\d.]+$/i.test(t));
+    if (volIdx >= 0) {
+      volume = Math.min(1.0, Math.max(0, parseFloat(patternTokens[volIdx].slice(4))));
+      patternTokens = patternTokens.filter((_, j) => j !== volIdx);
+    }
+
     const steps = [];
     for (const tok of patternTokens)
       for (const ch of tok)
@@ -216,7 +224,7 @@ function parseCode(code) {
 
     const tiled = Array.from({ length: STEPS }, (_, i) => steps[i % steps.length]);
     const label = note ? `${instrument} ${note}` : instrument;
-    tracks.push({ instrument, note, steps: tiled, label });
+    tracks.push({ instrument, note, steps: tiled, label, volume });
   }
 
   return { bpm, tracks };
@@ -249,8 +257,18 @@ function parseSongCode(code) {
       flushScene();
       for (const tok of songMatch[1].trim().split(/\s+/).filter(Boolean)) {
         // Each token is a step; within a step '+' separates parallel scenes
-        const sceneNames = tok.split('+').map(s => s.toUpperCase()).filter(Boolean);
-        if (sceneNames.length > 0) parsedArrangement.push({ sceneNames });
+        // Optional per-scene volume: A[0.8]+B[0.6]
+        const sceneNames = [];
+        const sceneVols = {};
+        for (const part of tok.split('+').filter(Boolean)) {
+          const m = part.match(/^([A-Z]+)(?:\[([\d.]+)\])?$/i);
+          if (m) {
+            const name = m[1].toUpperCase();
+            sceneNames.push(name);
+            if (m[2]) sceneVols[name] = parseFloat(m[2]);
+          }
+        }
+        if (sceneNames.length > 0) parsedArrangement.push({ sceneNames, sceneVols });
       }
       continue;
     }
@@ -275,10 +293,15 @@ function generateSongCode() {
 
   if (arrangement.length > 0) {
     const arrStr = arrangement.map(step => {
-      const names = step.sceneIds
-        .map(id => scenes.find(s => s.id === id)?.name)
-        .filter(Boolean);
-      return names.join('+');
+      const parts = step.sceneIds.map(id => {
+        const scene = scenes.find(s => s.id === id);
+        if (!scene) return null;
+        const vol = step.volumes?.[id];
+        return (vol !== undefined && Math.abs(vol - 1.0) > 0.005)
+          ? `${scene.name}[${parseFloat(vol.toFixed(2))}]`
+          : scene.name;
+      }).filter(Boolean);
+      return parts.join('+');
     }).filter(Boolean).join(' ');
     if (arrStr) lines.push(`@song ${arrStr}`);
   }
@@ -301,7 +324,14 @@ function applySongCode(code) {
     const sceneIds = pa.sceneNames
       .map(name => scenes.find(s => s.name === name)?.id)
       .filter(Boolean);
-    if (sceneIds.length > 0) arrangement.push({ sceneIds });
+    if (sceneIds.length > 0) {
+      const volumes = {};
+      for (const [name, vol] of Object.entries(pa.sceneVols || {})) {
+        const sc = scenes.find(s => s.name === name);
+        if (sc) volumes[sc.id] = vol;
+      }
+      arrangement.push({ sceneIds, volumes: Object.keys(volumes).length ? volumes : undefined });
+    }
   }
 }
 
@@ -313,8 +343,10 @@ function generatePatternCode(bpm, tracks) {
     const groups = [];
     for (let g = 0; g < 4; g++)
       groups.push(track.steps.slice(g * 4, g * 4 + 4).map(s => s ? 'x' : '.').join(' '));
-    const prefix = track.note ? `${track.instrument}  ${track.note}` : track.instrument;
-    lines.push(prefix.padEnd(11) + '| ' + groups.join(' | ') + ' |');
+    const baseLabel = track.note ? `${track.instrument}  ${track.note}` : track.instrument;
+    const volStr = (track.volume !== undefined && Math.abs(track.volume - 1.0) > 0.005)
+      ? ` vol:${parseFloat(track.volume.toFixed(2))}` : '';
+    lines.push(baseLabel.padEnd(11) + volStr.padEnd(volStr ? 9 : 0) + '| ' + groups.join(' | ') + ' |');
   }
   return lines.join('\n');
 }
@@ -343,16 +375,16 @@ function getCtx() {
   return audioCtx;
 }
 
-function playKick(ac, t) {
+function playKick(ac, t, vol) {
   const osc = ac.createOscillator(), gain = ac.createGain();
   osc.connect(gain); gain.connect(ac.destination);
   osc.frequency.setValueAtTime(130, t);
   osc.frequency.exponentialRampToValueAtTime(0.01, t + 0.42);
-  gain.gain.setValueAtTime(1.1, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
+  gain.gain.setValueAtTime(1.1 * vol, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.42);
   osc.start(t); osc.stop(t + 0.42);
 }
 
-function playSnare(ac, t) {
+function playSnare(ac, t, vol) {
   const bufLen = Math.ceil(ac.sampleRate * 0.18);
   const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
   const data = buf.getChannelData(0);
@@ -360,16 +392,16 @@ function playSnare(ac, t) {
   const noise = ac.createBufferSource(); noise.buffer = buf;
   const hpf = ac.createBiquadFilter(); hpf.type = 'highpass'; hpf.frequency.value = 1200;
   const ng = ac.createGain();
-  ng.gain.setValueAtTime(0.65, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+  ng.gain.setValueAtTime(0.65 * vol, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
   noise.connect(hpf); hpf.connect(ng); ng.connect(ac.destination);
   noise.start(t); noise.stop(t + 0.18);
   const osc = ac.createOscillator(), og = ac.createGain();
   osc.frequency.value = 185;
-  og.gain.setValueAtTime(0.5, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+  og.gain.setValueAtTime(0.5 * vol, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
   osc.connect(og); og.connect(ac.destination); osc.start(t); osc.stop(t + 0.1);
 }
 
-function playClap(ac, t) {
+function playClap(ac, t, vol) {
   for (let layer = 0; layer < 3; layer++) {
     const d = layer * 0.012;
     const bufLen = Math.ceil(ac.sampleRate * 0.1);
@@ -379,13 +411,13 @@ function playClap(ac, t) {
     const noise = ac.createBufferSource(); noise.buffer = buf;
     const bpf = ac.createBiquadFilter(); bpf.type = 'bandpass'; bpf.frequency.value = 1200; bpf.Q.value = 0.7;
     const gain = ac.createGain();
-    gain.gain.setValueAtTime(0.5, t + d); gain.gain.exponentialRampToValueAtTime(0.001, t + d + 0.1);
+    gain.gain.setValueAtTime(0.5 * vol, t + d); gain.gain.exponentialRampToValueAtTime(0.001, t + d + 0.1);
     noise.connect(bpf); bpf.connect(gain); gain.connect(ac.destination);
     noise.start(t + d); noise.stop(t + d + 0.1);
   }
 }
 
-function playHat(ac, t, open) {
+function playHat(ac, t, open, vol) {
   const dur = open ? 0.28 : 0.045;
   const bufLen = Math.ceil(ac.sampleRate * dur);
   const buf = ac.createBuffer(1, bufLen, ac.sampleRate);
@@ -394,33 +426,33 @@ function playHat(ac, t, open) {
   const noise = ac.createBufferSource(); noise.buffer = buf;
   const bpf = ac.createBiquadFilter(); bpf.type = 'bandpass'; bpf.frequency.value = 9500; bpf.Q.value = 0.3;
   const gain = ac.createGain();
-  gain.gain.setValueAtTime(open ? 0.3 : 0.38, t); gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  gain.gain.setValueAtTime((open ? 0.3 : 0.38) * vol, t); gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
   noise.connect(bpf); bpf.connect(gain); gain.connect(ac.destination);
   noise.start(t); noise.stop(t + dur);
 }
 
-function playRim(ac, t) {
+function playRim(ac, t, vol) {
   const osc = ac.createOscillator(), gain = ac.createGain();
   osc.type = 'triangle'; osc.frequency.value = 480;
-  gain.gain.setValueAtTime(0.45, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
+  gain.gain.setValueAtTime(0.45 * vol, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.055);
   osc.connect(gain); gain.connect(ac.destination); osc.start(t); osc.stop(t + 0.055);
 }
 
-function playSynth(ac, t, note, instrument) {
+function playSynth(ac, t, note, instrument, vol) {
   const freq = NOTE_FREQ[note] || NOTE_FREQ['c4'];
   const osc = ac.createOscillator(), filt = ac.createBiquadFilter(), gain = ac.createGain();
 
   if (instrument === 'bass') {
     osc.type = 'sine'; filt.type = 'lowpass'; filt.frequency.value = 350;
-    gain.gain.setValueAtTime(0.7, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+    gain.gain.setValueAtTime(0.7 * vol, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
   } else if (instrument === 'pad') {
     osc.type = 'triangle'; filt.type = 'lowpass';
     filt.frequency.setValueAtTime(1600, t); filt.frequency.exponentialRampToValueAtTime(700, t + 0.5);
-    gain.gain.setValueAtTime(0.22, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+    gain.gain.setValueAtTime(0.22 * vol, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
   } else {
     osc.type = 'sawtooth'; filt.type = 'lowpass';
     filt.frequency.setValueAtTime(2800, t); filt.frequency.exponentialRampToValueAtTime(700, t + 0.22);
-    gain.gain.setValueAtTime(0.28, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
+    gain.gain.setValueAtTime(0.28 * vol, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.28);
   }
 
   osc.frequency.value = freq;
@@ -430,15 +462,17 @@ function playSynth(ac, t, note, instrument) {
 
 function triggerTrack(track, t) {
   const ac = getCtx();
+  const vol = track.volume ?? 1.0;
+  if (vol <= 0) return;
   switch (track.instrument) {
-    case 'kick':                  playKick(ac, t); break;
-    case 'snare':                 playSnare(ac, t); break;
-    case 'clap':                  playClap(ac, t); break;
-    case 'hat': case 'hihat':     playHat(ac, t, false); break;
-    case 'openhat':               playHat(ac, t, true); break;
-    case 'rim':                   playRim(ac, t); break;
+    case 'kick':                  playKick(ac, t, vol); break;
+    case 'snare':                 playSnare(ac, t, vol); break;
+    case 'clap':                  playClap(ac, t, vol); break;
+    case 'hat': case 'hihat':     playHat(ac, t, false, vol); break;
+    case 'openhat':               playHat(ac, t, true, vol); break;
+    case 'rim':                   playRim(ac, t, vol); break;
     case 'synth': case 'bass': case 'pad':
-      playSynth(ac, t, track.note || 'c4', track.instrument); break;
+      playSynth(ac, t, track.note || 'c4', track.instrument, vol); break;
   }
 }
 
@@ -453,7 +487,9 @@ function loadTracksFromStep(idx) {
     const scene = scenes.find(s => s.id === sceneId);
     if (scene) {
       const result = parseCode(scene.code || '');
-      parsedTracks.push(...result.tracks);
+      const sceneVol = step.volumes?.[sceneId] ?? 1.0;
+      for (const track of result.tracks)
+        parsedTracks.push({ ...track, volume: (track.volume ?? 1.0) * sceneVol });
       if (!bpmSet) { currentBpm = result.bpm; bpmSet = true; }
     }
   }
@@ -611,6 +647,31 @@ function rebuildPeSequencer() {
     }
     row.appendChild(stepsEl);
 
+    const volWrap = document.createElement('div');
+    volWrap.className = 'seq-vol-wrap';
+
+    const volSlider = document.createElement('input');
+    volSlider.type = 'range';
+    volSlider.min = '0';
+    volSlider.max = '1';
+    volSlider.step = '0.05';
+    volSlider.value = String(track.volume ?? 1.0);
+    volSlider.className = 'seq-vol-slider';
+    volSlider.title = 'Track volume';
+    volSlider.addEventListener('input', () => {
+      peTracks[ti].volume = parseFloat(volSlider.value);
+      volLabel.textContent = Math.round(parseFloat(volSlider.value) * 100) + '%';
+      syncPeCodeFromState();
+    });
+
+    const volLabel = document.createElement('span');
+    volLabel.className = 'seq-vol-label';
+    volLabel.textContent = Math.round((track.volume ?? 1.0) * 100) + '%';
+
+    volWrap.appendChild(volSlider);
+    volWrap.appendChild(volLabel);
+    row.appendChild(volWrap);
+
     const del = document.createElement('button');
     del.className = 'seq-delete';
     del.textContent = '×';
@@ -648,7 +709,7 @@ function handlePeAddTrack() {
     note = NOTE_FREQ[raw] ? raw : 'c4';
   }
   const label = note ? `${instrument} ${note}` : instrument;
-  peTracks.push({ instrument, note, steps: Array(STEPS).fill(false), label });
+  peTracks.push({ instrument, note, steps: Array(STEPS).fill(false), label, volume: 1.0 });
   rebuildPeSequencer();
   syncPeCodeFromState();
   peSeqTracks.lastElementChild?.scrollIntoView({ block: 'nearest' });
@@ -978,6 +1039,25 @@ function rebuildSongArrList() {
         letter.title = `${scene.name} — click to edit`;
         letter.addEventListener('click', e => { e.stopPropagation(); openPatternEditor(sceneId); });
         chip.appendChild(letter);
+
+        // Volume badge — click to cycle through presets
+        const VOL_PRESETS = [1.0, 0.75, 0.5, 0.25];
+        const curVol = arrangement[i].volumes?.[sceneId] ?? 1.0;
+        const volBadge = document.createElement('span');
+        volBadge.className = 'arr-chip-vol' + (Math.abs(curVol - 1.0) > 0.005 ? ' dimmed' : '');
+        volBadge.textContent = Math.round(curVol * 100) + '%';
+        volBadge.title = 'Click to adjust volume';
+        volBadge.addEventListener('click', e => {
+          e.stopPropagation();
+          const step = arrangement[i];
+          if (!step.volumes) step.volumes = {};
+          const v = step.volumes[sceneId] ?? 1.0;
+          const idx2 = VOL_PRESETS.findIndex(p => Math.abs(p - v) < 0.01);
+          step.volumes[sceneId] = VOL_PRESETS[(idx2 + 1) % VOL_PRESETS.length];
+          rebuildSongArrList();
+          syncSongEditorFromState();
+        });
+        chip.appendChild(volBadge);
 
         const removeChip = document.createElement('button');
         removeChip.className = 'arr-chip-remove';
