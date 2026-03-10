@@ -1003,6 +1003,7 @@ function rebuildSceneCards() {
     }
 
     card.innerHTML = `
+      <button class="scene-card-remove" data-id="${scene.id}" title="Delete scene ${scene.name}">&times;</button>
       <div class="scene-card-letter">${scene.name}</div>
       <div class="scene-card-info">
         <span class="scene-card-bpm">${info.bpm} bpm</span>
@@ -1036,6 +1037,9 @@ function rebuildSceneCards() {
 
   sceneCards.querySelectorAll('[data-action="dup"]').forEach(btn =>
     btn.addEventListener('click', () => duplicateScene(btn.dataset.id)));
+
+  sceneCards.querySelectorAll('.scene-card-remove').forEach(btn =>
+    btn.addEventListener('click', e => { e.stopPropagation(); deleteScene(btn.dataset.id); }));
 
   sceneCards.querySelectorAll('[data-action="queue"]').forEach(btn =>
     btn.addEventListener('click', () => addToArrangement(btn.dataset.id)));
@@ -1204,6 +1208,17 @@ function rebuildSongArrList() {
         dragSourceType = null;
       });
 
+      // Resize handle on right edge — drag to extend/loop the step
+      const resizeHandle = document.createElement('div');
+      resizeHandle.className = 'arr-block-resize';
+      resizeHandle.title = 'Drag to extend (loop this step)';
+      resizeHandle.addEventListener('mousedown', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        startBlockResize(i, e.clientX);
+      });
+      block.appendChild(resizeHandle);
+
       songArrList.appendChild(block);
     }
 
@@ -1264,6 +1279,30 @@ function duplicateScene(sceneId) {
   setStatus(`scene ${src.name} duplicated as ${newScene.name}`);
 }
 
+function deleteScene(sceneId) {
+  const idx = scenes.findIndex(s => s.id === sceneId);
+  if (idx < 0) return;
+  const scene = scenes[idx];
+  if (!confirm(`Delete scene ${scene.name}? It will also be removed from the arrangement.`)) return;
+
+  if (patternEditorOpen && editingSceneId === sceneId) closePatternEditor(false);
+  if (isPlaying) stopPlaying();
+
+  scenes.splice(idx, 1);
+
+  // Remove from all arrangement steps; delete empty steps
+  for (let i = arrangement.length - 1; i >= 0; i--) {
+    arrangement[i].sceneIds = arrangement[i].sceneIds.filter(id => id !== sceneId);
+    if (arrangement[i].sceneIds.length === 0) arrangement.splice(i, 1);
+  }
+  if (arrPlayIdx >= arrangement.length) arrPlayIdx = Math.max(0, arrangement.length - 1);
+
+  rebuildSceneCards();
+  rebuildSongArrList();
+  syncSongEditorFromState();
+  setStatus(`scene ${scene.name} deleted`);
+}
+
 function addToArrangement(sceneId) {
   const scene = scenes.find(s => s.id === sceneId);
   if (!scene) return;
@@ -1271,6 +1310,89 @@ function addToArrangement(sceneId) {
   rebuildSongArrList();
   syncSongEditorFromState();
   setStatus(`scene ${scene.name} added to song`);
+}
+
+// ── Arrangement block resize (drag to extend / loop) ──
+
+let resizeState = null; // { idx, startX, origSceneIds, ghostCount }
+
+function startBlockResize(idx, startX) {
+  const step = arrangement[idx];
+  resizeState = {
+    idx,
+    startX,
+    origSceneIds: [...step.sceneIds],
+    ghostCount: 0
+  };
+  document.addEventListener('mousemove', onResizeMove);
+  document.addEventListener('mouseup', onResizeEnd);
+  document.body.style.cursor = 'col-resize';
+  document.body.style.userSelect = 'none';
+}
+
+function onResizeMove(e) {
+  if (!resizeState) return;
+  const delta = e.clientX - resizeState.startX;
+  const newGhostCount = Math.max(0, Math.round(delta / stepWidth));
+
+  if (newGhostCount !== resizeState.ghostCount) {
+    resizeState.ghostCount = newGhostCount;
+    // Remove old ghosts
+    songArrList.querySelectorAll('.arr-block-ghost').forEach(g => g.remove());
+    // Insert ghosts after the source block
+    const blocks = songArrList.querySelectorAll('.song-arr-block');
+    const sourceBlock = blocks[resizeState.idx];
+    if (!sourceBlock) return;
+    let insertAfter = sourceBlock;
+    for (let g = 0; g < newGhostCount; g++) {
+      const ghost = document.createElement('div');
+      ghost.className = 'song-arr-block arr-block-ghost';
+      ghost.style.width = `var(--step-width, 80px)`;
+
+      const scenesGroup = document.createElement('div');
+      scenesGroup.className = 'arr-block-scenes';
+      for (const sceneId of resizeState.origSceneIds) {
+        const scene = scenes.find(s => s.id === sceneId);
+        if (!scene) continue;
+        const chip = document.createElement('div');
+        chip.className = 'arr-scene-chip';
+        const letter = document.createElement('span');
+        letter.className = 'arr-chip-letter';
+        letter.textContent = scene.name;
+        chip.appendChild(letter);
+        scenesGroup.appendChild(chip);
+      }
+      ghost.appendChild(scenesGroup);
+      insertAfter.after(ghost);
+      insertAfter = ghost;
+    }
+  }
+}
+
+function onResizeEnd() {
+  document.removeEventListener('mousemove', onResizeMove);
+  document.removeEventListener('mouseup', onResizeEnd);
+  document.body.style.cursor = '';
+  document.body.style.userSelect = '';
+
+  if (!resizeState) return;
+  const { idx, origSceneIds, ghostCount } = resizeState;
+  resizeState = null;
+
+  // Remove ghosts
+  songArrList.querySelectorAll('.arr-block-ghost').forEach(g => g.remove());
+
+  if (ghostCount > 0) {
+    // Insert copies of the step after it
+    const copies = [];
+    for (let g = 0; g < ghostCount; g++) {
+      copies.push({ sceneIds: [...origSceneIds] });
+    }
+    arrangement.splice(idx + 1, 0, ...copies);
+    rebuildSongArrList();
+    syncSongEditorFromState();
+    setStatus(`step extended ${ghostCount} more`);
+  }
 }
 
 newSceneBtn.addEventListener('click', () => openPatternEditor(null));
