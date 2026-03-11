@@ -19,8 +19,15 @@ export interface Experiment {
 
 const experiments: Experiment[] = [
   {
+    id: 'clawd-hop',
+    title: 'Clawd',
+    description: 'A color-switching platformer. Only platforms matching your color hold you up.',
+    path: '/experiments/clawd-hop/index.html',
+    thumbnail: null,
+  },
+  {
     id: 'code-synth',
-    title: 'codesynth',
+    title: 'Codesynth',
     description: 'A live music coding environment. Write patterns in a simple language and hear them play in a loop.',
     path: '/experiments/code-synth/index.html',
     thumbnail: null,
@@ -33,17 +40,17 @@ const experiments: Experiment[] = [
     thumbnail: null,
   },
   {
-    id: 'keepers-isle',
-    title: "Keeper's Isle",
-    description: 'Explore a tiny island as its lighthouse keeper. An isometric world to wander.',
-    path: '/experiments/keepers-isle/index.html',
-    thumbnail: null,
-  },
-  {
     id: 'aviation-rabbit-hole',
     title: 'Aviation Rabbit Hole',
     description: 'Dive into aviation Wikipedia articles and follow the links that fascinate you.',
     path: '/experiments/aviation-rabbit-hole/index.html',
+    thumbnail: null,
+  },
+  {
+    id: 'keepers-isle',
+    title: "Keeper's Isle",
+    description: 'Explore a tiny island as its lighthouse keeper. An isometric world to wander.',
+    path: '/experiments/keepers-isle/index.html',
     thumbnail: null,
   },
 ];

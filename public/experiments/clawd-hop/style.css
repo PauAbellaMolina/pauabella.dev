@@ -1,0 +1,307 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #fff0db;
+  color: #0f4c81;
+  font-family: 'DM Sans', sans-serif;
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+canvas {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+/* ── Screens ── */
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+  background: #fff0db;
+  padding: 1.5rem;
+}
+
+.screen.active {
+  display: flex;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+h1 {
+  font-size: 3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+}
+
+.screen p {
+  font-size: 1rem;
+  line-height: 1.5;
+  opacity: 0.6;
+  max-width: 280px;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Controls hint ── */
+
+.controls-hint {
+  display: flex;
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+  font-size: 0.85rem;
+  opacity: 0.45;
+}
+
+kbd {
+  display: inline-block;
+  background: rgba(15, 76, 129, 0.08);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 0.8rem;
+  margin: 0 2px;
+}
+
+/* ── Buttons ── */
+
+button {
+  background: #0f4c81;
+  color: #fff0db;
+  border: none;
+  border-radius: 6px;
+  padding: 0.75rem 2rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:hover {
+  transform: scale(1.04);
+  opacity: 0.88;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* ── Game Over ── */
+
+#gameover h1 {
+  font-size: 4.5rem;
+  margin-bottom: 0.25rem;
+}
+
+#gameover .subtitle {
+  font-size: 0.9rem;
+  opacity: 0.4;
+  margin-bottom: 2rem;
+}
+
+/* ── Bottom Legend ── */
+
+#legend {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 15;
+  background: #fff0db;
+  padding: 10px 0 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+#legend.visible {
+  display: flex;
+}
+
+#slow-bar-track {
+  width: 236px;
+  height: 6px;
+  background: rgba(15, 76, 129, 0.1);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+#slow-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: #0f4c81;
+  opacity: 0.3;
+  width: 100%;
+  transition: width 0.05s linear;
+}
+
+#slow-dots {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: space-evenly;
+}
+
+#slow-dots.visible {
+  display: flex;
+}
+
+.slow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0f4c81;
+  opacity: 0.1;
+  transition: opacity 0.15s ease;
+}
+
+.slow-dot.filled {
+  opacity: 0.45;
+}
+
+#legend-keys {
+  display: flex;
+  gap: 10px;
+}
+
+.legend-key {
+  width: 72px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.legend-key:hover {
+  transform: none;
+}
+
+.legend-key:active {
+  transform: scale(0.96);
+}
+
+.lk-label {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff0db;
+  pointer-events: none;
+}
+
+/* ── Touch Controls ── */
+
+#touch {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.tc-row {
+  position: absolute;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.tc-top {
+  top: 16px;
+  right: 20px;
+}
+
+.tc-bottom {
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tc-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(15, 76, 129, 0.1);
+  color: #0f4c81;
+  font-size: 1.3rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.tc-btn:hover {
+  transform: none;
+  opacity: 1;
+}
+
+.tc-btn:active {
+  background: rgba(15, 76, 129, 0.22);
+  transform: scale(0.93);
+}
+
+.tc-jump {
+  width: 56px;
+  height: 56px;
+  font-size: 1.5rem;
+}
+
+.tc-color {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+/* Show touch controls on touch-primary devices */
+.has-touch #touch.visible {
+  display: block;
+}
+
+/* ── Responsive ── */
+
+@media (max-width: 600px) {
+  h1 { font-size: 2.4rem; }
+  #gameover h1 { font-size: 3.5rem; }
+
+  .controls-hint {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
