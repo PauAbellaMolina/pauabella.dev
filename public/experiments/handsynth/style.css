@@ -1,0 +1,236 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #fff0db;
+  color: #0f4c81;
+  font-family: 'DM Sans', sans-serif;
+  padding: 1.5rem;
+  overflow: hidden;
+}
+
+#root {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+h1 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+button {
+  background: #0f4c81;
+  color: #fff0db;
+  border: none;
+  border-radius: 6px;
+  padding: 0.75rem 1.75rem;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+button:hover {
+  transform: scale(1.04);
+  opacity: 0.85;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* ---- Start / Loading / Error screens ---- */
+
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.center-screen {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.screen h1 {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.subtitle {
+  font-size: 1rem;
+  line-height: 1.6;
+  opacity: 0.6;
+  margin-bottom: 1.5rem;
+  max-width: 360px;
+}
+
+/* ---- Playing state: immersive camera + overlays ---- */
+
+.playing-container {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: -1.5rem; /* bleed to viewport edges */
+  background: #0f4c81;
+  animation: fadeIn 0.4s ease-out;
+  overflow: hidden;
+}
+
+.webcam-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);
+  opacity: 0.3;
+  z-index: 0;
+}
+
+.landmark-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ---- Chord label (left hand) ---- */
+
+.chord-label {
+  position: absolute;
+  left: 15%;
+  top: 42%;
+  transform: translate(-50%, -50%);
+  font-size: 3.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff0db;
+  opacity: 0.7;
+  z-index: 2;
+  pointer-events: none;
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* ---- Melody note label (right hand) ---- */
+
+.melody-label {
+  position: absolute;
+  right: 15%;
+  top: 42%;
+  transform: translate(50%, -50%);
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff0db;
+  opacity: 0.55;
+  z-index: 2;
+  pointer-events: none;
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* ---- Locked state (fist gesture) ---- */
+
+.chord-label.locked,
+.melody-label.locked {
+  opacity: 0.95;
+  text-decoration: underline;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 8px;
+  text-decoration-color: rgba(255, 240, 219, 0.5);
+}
+
+/* ---- Bottom bar ---- */
+
+.bottom-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  z-index: 3;
+}
+
+.scale-indicator {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff0db;
+  opacity: 0.4;
+}
+
+.bottom-bar .stop-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.85rem;
+  background: rgba(255, 240, 219, 0.15);
+  color: #fff0db;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.bottom-bar .stop-btn:hover {
+  background: rgba(255, 240, 219, 0.25);
+}
+
+/* ---- Animation ---- */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 600px) {
+  body {
+    padding: 1rem;
+  }
+
+  .screen h1 {
+    font-size: 2rem;
+  }
+
+  .playing-container {
+    margin: -1rem;
+  }
+
+  .chord-label {
+    font-size: 2.5rem;
+    left: 20%;
+  }
+
+  .melody-label {
+    font-size: 1.75rem;
+    right: 20%;
+  }
+
+  .bottom-bar {
+    padding: 1rem;
+  }
+
+  .bottom-bar .stop-btn {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

@@ -19,6 +19,13 @@ export interface Experiment {
 
 const experiments: Experiment[] = [
   {
+    id: 'handsynth',
+    title: 'Handsynth',
+    description: 'A hand-driven synthesizer experiment.',
+    path: '/experiments/handsynth/index.html',
+    thumbnail: null,
+  },
+  {
     id: 'clawd-hop',
     title: 'Clawd',
     description: 'A color-switching platformer. Only platforms matching your color hold you up.',

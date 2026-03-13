@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Handsynth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- MediaPipe Hand Landmarker — loaded as module, exposed globally -->
+  <script type="module">
+    import { HandLandmarker, FilesetResolver } from
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest';
+    window.HandLandmarker = HandLandmarker;
+    window.FilesetResolver = FilesetResolver;
+    window.__mediapipeReady = true;
+  </script>
+
+  <!-- React -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- Modules (plain JS classes, no JSX) — load before the React app -->
+  <script src="synth-voices.js"></script>
+  <script src="harmonizer.js"></script>
+  <script src="hand-tracker.js"></script>
+
+  <!-- React app (JSX compiled by Babel standalone) -->
+  <script type="text/babel" data-type="module" src="script.js"></script>
+</body>
+</html>
