@@ -42,8 +42,10 @@ function drawLandmarks(canvas, landmarks, handedness) {
 function App() {
   const [appState, setAppState] = useState('idle'); // idle | loading | playing | error
   const [errorMsg, setErrorMsg] = useState('');
-  const [leftHandInfo, setLeftHandInfo] = useState(null);   // { chordName } | null
-  const [rightHandInfo, setRightHandInfo] = useState(null);  // { noteName } | null
+  const [leftHandInfo, setLeftHandInfo] = useState(null);   // { chordName, screenX } | null
+  const [rightHandInfo, setRightHandInfo] = useState(null);  // { noteName, screenX } | null
+  const [heldChords, setHeldChords] = useState([]);   // [{ name, screenX }]
+  const [heldMelodies, setHeldMelodies] = useState([]); // [{ name, screenX }]
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -88,14 +90,14 @@ function App() {
       const palm = landmarks[i][9]; // middle finger MCP — stable palm center
       const screenX = 1 - palm.x;   // mirror for user's perspective
       const screenY = palm.y;
-      const fist = window.isFist(landmarks[i]);
+      const gesture = window.getGesture(landmarks[i]);
 
       if (label === 'Left') {
         leftFound = true;
-        leftInfo = harmonizer.updateLeftHand(screenX, screenY, fist);
+        leftInfo = harmonizer.updateLeftHand(screenX, screenY, gesture);
       } else if (label === 'Right') {
         rightFound = true;
-        rightInfo = harmonizer.updateRightHand(screenX, screenY, fist);
+        rightInfo = harmonizer.updateRightHand(screenX, screenY, gesture);
       }
     }
 
@@ -109,6 +111,10 @@ function App() {
 
     setLeftHandInfo(leftFound ? leftInfo : null);
     setRightHandInfo(rightFound ? rightInfo : null);
+
+    // Sync held notes for rendering
+    setHeldChords([...harmonizer.heldChords]);
+    setHeldMelodies([...harmonizer.heldMelodies]);
 
     // Draw landmarks on canvas overlay
     drawLandmarks(canvasRef.current, landmarks, handedness);
@@ -156,6 +162,8 @@ function App() {
     if (harmonizerRef.current) { harmonizerRef.current.destroy(); harmonizerRef.current = null; }
     setLeftHandInfo(null);
     setRightHandInfo(null);
+    setHeldChords([]);
+    setHeldMelodies([]);
     setAppState('idle');
   }, []);
 
@@ -170,7 +178,7 @@ function App() {
           <br />
           Left hand changes chords. Right hand plays notes.
           <br />
-          Close your fist to lock a note.
+          Pinch index to hold a note. Pinch pinky to remove it.
         </p>
         <button onClick={handleStart}>Start</button>
         <video ref={videoRef} playsInline muted style={{ display: 'none' }} />
@@ -205,14 +213,33 @@ function App() {
       <video ref={videoRef} className="webcam-bg" playsInline muted />
       <canvas ref={canvasRef} className="landmark-overlay" />
 
+      {/* Held chord labels */}
+      {heldChords.map((h, i) => (
+        <div className="held-note held-chord" key={`hc-${i}`}
+          style={{ left: `${h.screenX * 100}%` }}>
+          {h.name}
+        </div>
+      ))}
+
+      {/* Held melody labels */}
+      {heldMelodies.map((h, i) => (
+        <div className="held-note held-melody" key={`hm-${i}`}
+          style={{ left: `${h.screenX * 100}%` }}>
+          {h.name}
+        </div>
+      ))}
+
+      {/* Live hand labels — follow the hand */}
       {leftHandInfo && (
-        <div className={`chord-label${leftHandInfo.locked ? ' locked' : ''}`}>
+        <div className="chord-label"
+          style={{ left: `${leftHandInfo.screenX * 100}%` }}>
           {leftHandInfo.chordName}
         </div>
       )}
 
       {rightHandInfo && (
-        <div className={`melody-label${rightHandInfo.locked ? ' locked' : ''}`}>
+        <div className="melody-label"
+          style={{ left: `${rightHandInfo.screenX * 100}%` }}>
           {rightHandInfo.noteName}
         </div>
       )}

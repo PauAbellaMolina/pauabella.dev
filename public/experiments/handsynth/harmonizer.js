@@ -6,6 +6,11 @@
  *
  * Both quantized to C major diatonic scale across 2 octaves.
  * Y position controls filter brightness on each layer.
+ *
+ * Gestures:
+ *   Open hand — play live note following hand position
+ *   Pinch (thumb + index) — stamp current note as a held drone
+ *   Fist — remove nearby held note
  */
 
 // ---------------------------------------------------------------------------
@@ -15,7 +20,7 @@
 const SCALE_NOTES = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
 const CHORD_QUALITIES = ['', 'm', 'm', '', '', 'm', 'dim'];
 
-// Number of positions across 2 octaves (7 notes × 2)
+// Number of positions across 2 octaves (7 notes x 2)
 const NUM_POSITIONS = 14;
 
 /**
@@ -101,6 +106,45 @@ function isFist(landmarks) {
   return curled >= 3;
 }
 
+/**
+ * Detect a place-pinch (thumb tip touching index finger tip).
+ * Used to persist/stamp the current note as a held drone.
+ *
+ * @param {Array} landmarks — 21 {x,y,z} points from MediaPipe
+ * @returns {boolean}
+ */
+function isPlacePinch(landmarks) {
+  const thumbTip = landmarks[4];
+  const indexTip = landmarks[8];
+  return dist3D(thumbTip, indexTip) < 0.07;
+}
+
+/**
+ * Detect a remove-pinch (thumb tip touching pinky finger tip).
+ * Used to remove a nearby held note.
+ *
+ * @param {Array} landmarks — 21 {x,y,z} points from MediaPipe
+ * @returns {boolean}
+ */
+function isRemovePinch(landmarks) {
+  const thumbTip = landmarks[4];
+  const pinkyTip = landmarks[20];
+  return dist3D(thumbTip, pinkyTip) < 0.07;
+}
+
+/**
+ * Determine the current gesture from landmarks.
+ * Priority: place-pinch > remove-pinch > open
+ *
+ * @param {Array} landmarks — 21 {x,y,z} points
+ * @returns {'place'|'remove'|'open'}
+ */
+function getGesture(landmarks) {
+  if (isPlacePinch(landmarks)) return 'place';
+  if (isRemovePinch(landmarks)) return 'remove';
+  return 'open';
+}
+
 /** Quantize a 0–1 value to an integer index. */
 function quantize(x, numPositions) {
   const clamped = Math.max(0, Math.min(0.999, x));
@@ -127,11 +171,17 @@ class Harmonizer {
     this.currentChordIndex = null;
     this.currentMelodyIndex = null;
 
-    // Fist-lock state
-    this.chordLocked = false;
-    this.melodyLocked = false;
-    this.lockedChordName = null;
-    this.lockedMelodyName = null;
+    // Place-pinch edge detection (stamp only on pinch-start, not every frame)
+    this.chordPlacing = false;
+    this.melodyPlacing = false;
+
+    // Remove-pinch edge detection (remove only on pinch-start)
+    this.chordRemoving = false;
+    this.melodyRemoving = false;
+
+    // Held notes — objects with { name, screenX }
+    this.heldChords = [];
+    this.heldMelodies = [];
 
     // Configurable — change these to switch keys/octaves later
     this.chordOctave = 3;   // chord roots span C3–B4
@@ -153,49 +203,53 @@ class Harmonizer {
    *
    * @param {number} screenX — 0–1, mirrored for user's perspective
    * @param {number} screenY — 0–1, 0=top 1=bottom
-   * @param {boolean} fist — true if hand is making a fist (lock gesture)
-   * @returns {{ chordName: string, locked: boolean }}
+   * @param {'open'|'pinch'|'fist'} gesture
+   * @returns {{ chordName: string, screenX: number }}
    */
-  updateLeftHand(screenX, screenY, fist) {
-    // Handle lock transitions
-    if (fist && !this.chordLocked) {
-      // Just closed fist — lock current chord
-      const idx = quantize(screenX, NUM_POSITIONS);
-      const triad = getTriad(idx, this.chordOctave);
-      this.voicePool.setChord(triad.root, triad.third, triad.fifth);
-      this.chordLocked = true;
-      this.lockedChordName = triad.name;
-      this.currentChordIndex = idx;
-    } else if (!fist && this.chordLocked) {
-      // Just opened hand — unlock
-      this.chordLocked = false;
-      this.lockedChordName = null;
-    }
-
-    if (!this.chordLocked) {
-      // Normal tracking — update chord from X position
-      const idx = quantize(screenX, NUM_POSITIONS);
-      const triad = getTriad(idx, this.chordOctave);
-      this.voicePool.setChord(triad.root, triad.third, triad.fifth);
-      this.currentChordIndex = idx;
-      this.lockedChordName = null;
-    }
-
-    // Filter cutoff from Y — always responds, even when locked
+  updateLeftHand(screenX, screenY, gesture) {
     const cutoff = yToFilterCutoff(screenY, 200, 2000);
-    this.voicePool.setChordFilter(cutoff);
+    const PROXIMITY = 0.07;
 
-    // Fade in if hand just appeared
+    // Always update live chord to follow hand
+    const idx = quantize(screenX, NUM_POSITIONS);
+    const triad = getTriad(idx, this.chordOctave);
+    this.voicePool.setChord(triad.root, triad.third, triad.fifth);
+    this.voicePool.setChordFilter(cutoff);
+    this.currentChordIndex = idx;
+
     if (!this.chordHandPresent) {
       this.voicePool.fadeInChord();
       this.chordHandPresent = true;
     }
 
-    const chordName = this.chordLocked
-      ? this.lockedChordName
-      : getTriad(this.currentChordIndex, this.chordOctave).name;
+    // Place-pinch (thumb+index) → stamp held chord (edge: only on start)
+    if (gesture === 'place' && !this.chordPlacing) {
+      this.chordPlacing = true;
+      this.voicePool.spawnHeldChord(triad.root, triad.third, triad.fifth, cutoff);
+      this.heldChords.push({ name: triad.name, screenX });
+      if (this.heldChords.length > 4) {
+        this.voicePool.removeHeldChord(0);
+        this.heldChords.shift();
+      }
+    } else if (gesture !== 'place') {
+      this.chordPlacing = false;
+    }
 
-    return { chordName, locked: this.chordLocked };
+    // Remove-pinch (thumb+pinky) → remove nearby held chord (edge: only on start)
+    if (gesture === 'remove' && !this.chordRemoving) {
+      this.chordRemoving = true;
+      const nearIdx = this.heldChords.findIndex(
+        (h) => Math.abs(h.screenX - screenX) < PROXIMITY
+      );
+      if (nearIdx !== -1) {
+        this.voicePool.removeHeldChord(nearIdx);
+        this.heldChords.splice(nearIdx, 1);
+      }
+    } else if (gesture !== 'remove') {
+      this.chordRemoving = false;
+    }
+
+    return { chordName: triad.name, screenX };
   }
 
   /**
@@ -203,65 +257,80 @@ class Harmonizer {
    *
    * @param {number} screenX — 0–1, mirrored
    * @param {number} screenY — 0–1
-   * @param {boolean} fist — true if hand is making a fist (lock gesture)
-   * @returns {{ noteName: string, locked: boolean }}
+   * @param {'open'|'pinch'|'fist'} gesture
+   * @returns {{ noteName: string, screenX: number }}
    */
-  updateRightHand(screenX, screenY, fist) {
-    // Handle lock transitions
-    if (fist && !this.melodyLocked) {
-      const idx = quantize(screenX, NUM_POSITIONS);
-      const note = getMelodyNote(idx, this.melodyOctave);
-      this.voicePool.setMelody(note.freq);
-      this.melodyLocked = true;
-      this.lockedMelodyName = note.name;
-      this.currentMelodyIndex = idx;
-    } else if (!fist && this.melodyLocked) {
-      this.melodyLocked = false;
-      this.lockedMelodyName = null;
-    }
-
-    if (!this.melodyLocked) {
-      const idx = quantize(screenX, NUM_POSITIONS);
-      const note = getMelodyNote(idx, this.melodyOctave);
-      this.voicePool.setMelody(note.freq);
-      this.currentMelodyIndex = idx;
-      this.lockedMelodyName = null;
-    }
-
-    // Filter cutoff from Y — always responds, even when locked
+  updateRightHand(screenX, screenY, gesture) {
     const cutoff = yToFilterCutoff(screenY, 300, 3000);
+    const PROXIMITY = 0.07;
+
+    // Always update live melody to follow hand
+    const idx = quantize(screenX, NUM_POSITIONS);
+    const note = getMelodyNote(idx, this.melodyOctave);
+    this.voicePool.setMelody(note.freq);
     this.voicePool.setMelodyFilter(cutoff);
+    this.currentMelodyIndex = idx;
 
     if (!this.melodyHandPresent) {
       this.voicePool.fadeInMelody();
       this.melodyHandPresent = true;
     }
 
-    const noteName = this.melodyLocked
-      ? this.lockedMelodyName
-      : getMelodyNote(this.currentMelodyIndex, this.melodyOctave).name;
+    // Place-pinch (thumb+index) → stamp held melody (edge: only on start)
+    if (gesture === 'place' && !this.melodyPlacing) {
+      this.melodyPlacing = true;
+      this.voicePool.spawnHeldMelody(note.freq, cutoff);
+      this.heldMelodies.push({ name: note.name, screenX });
+      if (this.heldMelodies.length > 4) {
+        this.voicePool.removeHeldMelody(0);
+        this.heldMelodies.shift();
+      }
+    } else if (gesture !== 'place') {
+      this.melodyPlacing = false;
+    }
 
-    return { noteName, locked: this.melodyLocked };
+    // Remove-pinch (thumb+pinky) → remove nearby held melody (edge: only on start)
+    if (gesture === 'remove' && !this.melodyRemoving) {
+      this.melodyRemoving = true;
+      const nearIdx = this.heldMelodies.findIndex(
+        (h) => Math.abs(h.screenX - screenX) < PROXIMITY
+      );
+      if (nearIdx !== -1) {
+        this.voicePool.removeHeldMelody(nearIdx);
+        this.heldMelodies.splice(nearIdx, 1);
+      }
+    } else if (gesture !== 'remove') {
+      this.melodyRemoving = false;
+    }
+
+    return { noteName: note.name, screenX };
   }
 
-  /** Left hand removed — fade out chord and clear lock. */
+  /** Left hand removed — fade out live chord. Held notes persist. */
   releaseLeftHand() {
     if (!this.chordHandPresent) return;
     this.voicePool.fadeOutChord();
     this.chordHandPresent = false;
     this.currentChordIndex = null;
-    this.chordLocked = false;
-    this.lockedChordName = null;
+    this.chordPlacing = false;
+    this.chordRemoving = false;
   }
 
-  /** Right hand removed — fade out melody and clear lock. */
+  /** Right hand removed — fade out live melody. Held notes persist. */
   releaseRightHand() {
     if (!this.melodyHandPresent) return;
     this.voicePool.fadeOutMelody();
     this.melodyHandPresent = false;
     this.currentMelodyIndex = null;
-    this.melodyLocked = false;
-    this.lockedMelodyName = null;
+    this.melodyPlacing = false;
+    this.melodyRemoving = false;
+  }
+
+  /** Clear all held notes. */
+  clearHeld() {
+    this.voicePool.clearHeldNotes();
+    this.heldChords = [];
+    this.heldMelodies = [];
   }
 
   /** Tear down everything. */
@@ -278,10 +347,12 @@ class Harmonizer {
     this.melodyHandPresent = false;
     this.currentChordIndex = null;
     this.currentMelodyIndex = null;
-    this.chordLocked = false;
-    this.melodyLocked = false;
-    this.lockedChordName = null;
-    this.lockedMelodyName = null;
+    this.chordPlacing = false;
+    this.melodyPlacing = false;
+    this.chordRemoving = false;
+    this.melodyRemoving = false;
+    this.heldChords = [];
+    this.heldMelodies = [];
   }
 }
 
@@ -291,3 +362,6 @@ class Harmonizer {
 
 window.Harmonizer = Harmonizer;
 window.isFist = isFist;
+window.isPlacePinch = isPlacePinch;
+window.isRemovePinch = isRemovePinch;
+window.getGesture = getGesture;

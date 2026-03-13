@@ -112,11 +112,10 @@ button:active {
   pointer-events: none;
 }
 
-/* ---- Chord label (left hand) ---- */
+/* ---- Chord label (left hand) — follows hand X ---- */
 
 .chord-label {
   position: absolute;
-  left: 15%;
   top: 42%;
   transform: translate(-50%, -50%);
   font-size: 3.5rem;
@@ -126,16 +125,14 @@ button:active {
   opacity: 0.7;
   z-index: 2;
   pointer-events: none;
-  animation: fadeIn 0.15s ease-out;
 }
 
-/* ---- Melody note label (right hand) ---- */
+/* ---- Melody note label (right hand) — follows hand X ---- */
 
 .melody-label {
   position: absolute;
-  right: 15%;
   top: 42%;
-  transform: translate(50%, -50%);
+  transform: translate(-50%, -50%);
   font-size: 2.5rem;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -143,18 +140,30 @@ button:active {
   opacity: 0.55;
   z-index: 2;
   pointer-events: none;
-  animation: fadeIn 0.15s ease-out;
 }
 
-/* ---- Locked state (fist gesture) ---- */
+/* ---- Held note labels (persisted by fist-stamp) ---- */
 
-.chord-label.locked,
-.melody-label.locked {
-  opacity: 0.95;
-  text-decoration: underline;
-  text-decoration-thickness: 3px;
-  text-underline-offset: 8px;
-  text-decoration-color: rgba(255, 240, 219, 0.5);
+.held-note {
+  position: absolute;
+  transform: translateX(-50%);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  color: #fff0db;
+  opacity: 0.35;
+  z-index: 2;
+  pointer-events: none;
+  letter-spacing: -0.01em;
+}
+
+.held-chord {
+  top: 32%;
+  font-size: 1.5rem;
+}
+
+.held-melody {
+  top: 52%;
+  font-size: 1.2rem;
 }
 
 /* ---- Bottom bar ---- */
@@ -215,16 +224,22 @@ button:active {
 
   .chord-label {
     font-size: 2.5rem;
-    left: 20%;
   }
 
   .melody-label {
     font-size: 1.75rem;
-    right: 20%;
   }
 
   .bottom-bar {
     padding: 1rem;
+  }
+
+  .held-chord {
+    font-size: 1.2rem;
+  }
+
+  .held-melody {
+    font-size: 1rem;
   }
 
   .bottom-bar .stop-btn {
