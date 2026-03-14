@@ -142,30 +142,6 @@ button:active {
   pointer-events: none;
 }
 
-/* ---- Held note labels (persisted by fist-stamp) ---- */
-
-.held-note {
-  position: absolute;
-  transform: translateX(-50%);
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 700;
-  color: #fff0db;
-  opacity: 0.35;
-  z-index: 2;
-  pointer-events: none;
-  letter-spacing: -0.01em;
-}
-
-.held-chord {
-  top: 32%;
-  font-size: 1.5rem;
-}
-
-.held-melody {
-  top: 52%;
-  font-size: 1.2rem;
-}
-
 /* ---- Bottom bar ---- */
 
 .bottom-bar {
@@ -232,14 +208,6 @@ button:active {
 
   .bottom-bar {
     padding: 1rem;
-  }
-
-  .held-chord {
-    font-size: 1.2rem;
-  }
-
-  .held-melody {
-    font-size: 1rem;
   }
 
   .bottom-bar .stop-btn {

@@ -1,6 +1,19 @@
 const { useState, useEffect, useRef, useCallback } = React;
 
 // ---------------------------------------------------------------------------
+// Continuous color mapping — smooth hue sweep for background gradient
+// ---------------------------------------------------------------------------
+
+const DEFAULT_BG = 'hsl(210, 78%, 28%)'; // #0f4c81
+
+/** Map a 0–1 screenX to a smooth background color (hue sweep). */
+function noteColor(screenX) {
+  // Sweep from 210° (navy) through teal, green, purple, plum across the range
+  const hue = 210 + screenX * 160; // 210° → 370° (wraps past 360)
+  return `hsl(${hue % 360}, 50%, 27%)`;
+}
+
+// ---------------------------------------------------------------------------
 // Landmark drawing — two-hand aware
 // ---------------------------------------------------------------------------
 
@@ -44,8 +57,6 @@ function App() {
   const [errorMsg, setErrorMsg] = useState('');
   const [leftHandInfo, setLeftHandInfo] = useState(null);   // { chordName, screenX } | null
   const [rightHandInfo, setRightHandInfo] = useState(null);  // { noteName, screenX } | null
-  const [heldChords, setHeldChords] = useState([]);   // [{ name, screenX }]
-  const [heldMelodies, setHeldMelodies] = useState([]); // [{ name, screenX }]
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -90,14 +101,13 @@ function App() {
       const palm = landmarks[i][9]; // middle finger MCP — stable palm center
       const screenX = 1 - palm.x;   // mirror for user's perspective
       const screenY = palm.y;
-      const gesture = window.getGesture(landmarks[i]);
 
       if (label === 'Left') {
         leftFound = true;
-        leftInfo = harmonizer.updateLeftHand(screenX, screenY, gesture);
+        leftInfo = harmonizer.updateLeftHand(screenX, screenY);
       } else if (label === 'Right') {
         rightFound = true;
-        rightInfo = harmonizer.updateRightHand(screenX, screenY, gesture);
+        rightInfo = harmonizer.updateRightHand(screenX, screenY);
       }
     }
 
@@ -111,10 +121,6 @@ function App() {
 
     setLeftHandInfo(leftFound ? leftInfo : null);
     setRightHandInfo(rightFound ? rightInfo : null);
-
-    // Sync held notes for rendering
-    setHeldChords([...harmonizer.heldChords]);
-    setHeldMelodies([...harmonizer.heldMelodies]);
 
     // Draw landmarks on canvas overlay
     drawLandmarks(canvasRef.current, landmarks, handedness);
@@ -162,8 +168,6 @@ function App() {
     if (harmonizerRef.current) { harmonizerRef.current.destroy(); harmonizerRef.current = null; }
     setLeftHandInfo(null);
     setRightHandInfo(null);
-    setHeldChords([]);
-    setHeldMelodies([]);
     setAppState('idle');
   }, []);
 
@@ -176,9 +180,9 @@ function App() {
         <p className="subtitle">
           Play chords and melody with two hands.
           <br />
-          Left hand changes chords. Right hand plays notes.
+          Left hand plays chords. Right hand plays melody.
           <br />
-          Pinch index to hold a note. Pinch pinky to remove it.
+          Move up and down to change brightness.
         </p>
         <button onClick={handleStart}>Start</button>
         <video ref={videoRef} playsInline muted style={{ display: 'none' }} />
@@ -208,26 +212,16 @@ function App() {
   }
 
   // ---- Playing state ----
+
+  // Build background gradient from hand positions
+  const leftColor = leftHandInfo ? noteColor(leftHandInfo.screenX) : DEFAULT_BG;
+  const rightColor = rightHandInfo ? noteColor(rightHandInfo.screenX) : DEFAULT_BG;
+  const bgGradient = `linear-gradient(to right, ${leftColor} 15%, ${rightColor} 85%)`;
+
   return (
-    <div className="playing-container">
+    <div className="playing-container" style={{ background: bgGradient }}>
       <video ref={videoRef} className="webcam-bg" playsInline muted />
       <canvas ref={canvasRef} className="landmark-overlay" />
-
-      {/* Held chord labels */}
-      {heldChords.map((h, i) => (
-        <div className="held-note held-chord" key={`hc-${i}`}
-          style={{ left: `${h.screenX * 100}%` }}>
-          {h.name}
-        </div>
-      ))}
-
-      {/* Held melody labels */}
-      {heldMelodies.map((h, i) => (
-        <div className="held-note held-melody" key={`hm-${i}`}
-          style={{ left: `${h.screenX * 100}%` }}>
-          {h.name}
-        </div>
-      ))}
 
       {/* Live hand labels — follow the hand */}
       {leftHandInfo && (
@@ -245,7 +239,7 @@ function App() {
       )}
 
       <div className="bottom-bar">
-        <span className="scale-indicator">C Major</span>
+        <span className="scale-indicator">Continuous</span>
         <button className="stop-btn" onClick={handleStop}>Stop</button>
       </div>
     </div>

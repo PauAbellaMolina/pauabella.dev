@@ -7,18 +7,6 @@
  */
 
 // ---------------------------------------------------------------------------
-// Note frequency lookup (12-TET, A4 = 440 Hz)
-// ---------------------------------------------------------------------------
-
-const NOTE_FREQ = {};
-const NOTE_NAMES_12 = ['c','c#','d','d#','e','f','f#','g','g#','a','a#','b'];
-for (let oct = 0; oct <= 8; oct++) {
-  for (let i = 0; i < 12; i++) {
-    NOTE_FREQ[NOTE_NAMES_12[i] + oct] = 440 * Math.pow(2, (oct - 4) + (i - 9) / 12);
-  }
-}
-
-// ---------------------------------------------------------------------------
 // SynthVoice — a single persistent oscillator voice
 // ---------------------------------------------------------------------------
 
@@ -108,11 +96,8 @@ class SynthVoice {
 }
 
 // ---------------------------------------------------------------------------
-// VoicePool — manages chord (3 voices) + melody (1 voice) + held drones
+// VoicePool — manages chord (3 voices) + melody (1 voice)
 // ---------------------------------------------------------------------------
-
-const MAX_HELD_CHORDS = 4;
-const MAX_HELD_MELODIES = 4;
 
 class VoicePool {
   constructor(ac) {
@@ -120,8 +105,6 @@ class VoicePool {
     this.masterGain = null;
     this.chordVoices = [];
     this.melodyVoice = null;
-    this.heldChords = [];   // { voices: [SynthVoice x3] }
-    this.heldMelodies = []; // { voice: SynthVoice }
   }
 
   /** Create all voices and connect to master output. */
@@ -141,11 +124,11 @@ class VoicePool {
       );
     }
 
-    // 1 melody voice — brighter sawtooth lead
+    // 1 melody voice — smooth sine lead
     this.melodyVoice = new SynthVoice(this.ac, this.masterGain, {
-      waveform: 'sawtooth',
-      filterFreq: 1400,
-      maxGain: 0.18,
+      waveform: 'sine',
+      filterFreq: 1200,
+      maxGain: 0.15,
     });
   }
 
@@ -175,16 +158,12 @@ class VoicePool {
 
   /** Fade in all chord voices. */
   fadeInChord() {
-    for (const v of this.chordVoices) {
-      v.fadeIn(80);
-    }
+    for (const v of this.chordVoices) v.fadeIn(80);
   }
 
   /** Fade out all chord voices. */
   fadeOutChord() {
-    for (const v of this.chordVoices) {
-      v.fadeOut(200);
-    }
+    for (const v of this.chordVoices) v.fadeOut(200);
   }
 
   /** Fade in melody voice. */
@@ -197,103 +176,13 @@ class VoicePool {
     this.melodyVoice.fadeOut(200);
   }
 
-  // ---- Held voices (persistent drones from fist-stamp) ----
-
-  /** Spawn 3 held chord voices that drone at the given frequencies. */
-  spawnHeldChord(rootHz, thirdHz, fifthHz, filterCutoff) {
-    // Evict oldest if at cap
-    if (this.heldChords.length >= MAX_HELD_CHORDS) {
-      const oldest = this.heldChords.shift();
-      for (const v of oldest.voices) {
-        v.fadeOut(200);
-        setTimeout(() => v.destroy(), 300);
-      }
-    }
-
-    const freqs = [rootHz, thirdHz, fifthHz];
-    const voices = freqs.map((freq) => {
-      const v = new SynthVoice(this.ac, this.masterGain, {
-        waveform: 'triangle',
-        filterFreq: filterCutoff,
-        maxGain: 0.08,
-      });
-      v.setFrequency(freq);
-      v.fadeIn(80);
-      return v;
-    });
-
-    this.heldChords.push({ voices });
-  }
-
-  /** Spawn 1 held melody voice that drones at the given frequency. */
-  spawnHeldMelody(freqHz, filterCutoff) {
-    if (this.heldMelodies.length >= MAX_HELD_MELODIES) {
-      const oldest = this.heldMelodies.shift();
-      oldest.voice.fadeOut(200);
-      setTimeout(() => oldest.voice.destroy(), 300);
-    }
-
-    const voice = new SynthVoice(this.ac, this.masterGain, {
-      waveform: 'sawtooth',
-      filterFreq: filterCutoff,
-      maxGain: 0.12,
-    });
-    voice.setFrequency(freqHz);
-    voice.fadeIn(80);
-
-    this.heldMelodies.push({ voice });
-  }
-
-  /** Remove a single held chord by index. */
-  removeHeldChord(index) {
-    if (index < 0 || index >= this.heldChords.length) return;
-    const entry = this.heldChords.splice(index, 1)[0];
-    for (const v of entry.voices) {
-      v.fadeOut(200);
-      setTimeout(() => v.destroy(), 300);
-    }
-  }
-
-  /** Remove a single held melody by index. */
-  removeHeldMelody(index) {
-    if (index < 0 || index >= this.heldMelodies.length) return;
-    const entry = this.heldMelodies.splice(index, 1)[0];
-    entry.voice.fadeOut(200);
-    setTimeout(() => entry.voice.destroy(), 300);
-  }
-
-  /** Fade out and destroy all held voices. */
-  clearHeldNotes() {
-    for (const entry of this.heldChords) {
-      for (const v of entry.voices) {
-        v.fadeOut(200);
-        setTimeout(() => v.destroy(), 300);
-      }
-    }
-    for (const entry of this.heldMelodies) {
-      entry.voice.fadeOut(200);
-      setTimeout(() => entry.voice.destroy(), 300);
-    }
-    this.heldChords = [];
-    this.heldMelodies = [];
-  }
-
   /** Destroy all voices and disconnect master gain. */
   destroy() {
     for (const v of this.chordVoices) v.destroy();
     if (this.melodyVoice) this.melodyVoice.destroy();
-    // Destroy held voices immediately (no fade — we're shutting down)
-    for (const entry of this.heldChords) {
-      for (const v of entry.voices) v.destroy();
-    }
-    for (const entry of this.heldMelodies) {
-      entry.voice.destroy();
-    }
     if (this.masterGain) this.masterGain.disconnect();
     this.chordVoices = [];
     this.melodyVoice = null;
-    this.heldChords = [];
-    this.heldMelodies = [];
     this.masterGain = null;
   }
 }
@@ -304,4 +193,3 @@ class VoicePool {
 
 window.SynthVoice = SynthVoice;
 window.VoicePool = VoicePool;
-window.NOTE_FREQ = NOTE_FREQ;
