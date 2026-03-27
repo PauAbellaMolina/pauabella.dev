@@ -8,6 +8,10 @@ function Vibecoding() {
   const navigate = useNavigate();
 
   const handleExperimentClick = (experiment: Experiment) => {
+    if (experiment.externalUrl) {
+      window.open(experiment.externalUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     navigate(`/experiment/${experiment.id}`);
   };
 

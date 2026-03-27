@@ -4,6 +4,7 @@ export interface Experiment {
   description: string;
   path: string;
   thumbnail: string | null;
+  externalUrl?: string;
 }
 
 /**
@@ -18,6 +19,14 @@ export interface Experiment {
  */
 
 const experiments: Experiment[] = [
+  {
+    id: 'outloud',
+    title: 'Outloud',
+    description: 'Voice summaries for Claude Code responses. Using Haiku + macOS text to speech.',
+    path: '',
+    thumbnail: null,
+    externalUrl: 'https://github.com/PauAbellaMolina/Outloud',
+  },
   {
     id: 'handsynth',
     title: 'Handsynth',
