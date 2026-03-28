@@ -49,7 +49,7 @@ function Home() {
       <div className='content'>
         <span>
           <p>I'm a Software Engineer & Product Designer currently building the</p>
-          <p>AI-powered nurse assistant at <Link className="link" target="_blank" to="https://teton.ai">Teton</Link>.</p>
+          <p>ultimate AI nurse companion at <Link className="link" target="_blank" to="https://teton.ai">Teton</Link>.</p>
         </span>
         <span>
           <p>On my free time, I like to <Link className="link" to="/bikepack">bikepack</Link> around Denmark, write <Link className="link" to="/blogposts">blogposts</Link>, and vibecode <Link className="link" to="/vibecoding">experiments</Link>.</p>
