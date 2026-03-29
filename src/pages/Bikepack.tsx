@@ -18,7 +18,7 @@ function Bikepack() {
   const navigate = useNavigate();
 
   const handleHover = (e: React.MouseEvent<HTMLImageElement>) => {
-    const rotation = (Math.random() * 6 - 3).toFixed(2);
+    const rotation = (Math.random() * 3 - 1.5).toFixed(2);
     e.currentTarget.style.setProperty('--hover-rotate', `${rotation}deg`);
   };
 

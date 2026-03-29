@@ -227,8 +227,8 @@ a:hover {
 }
 
 .sparse-grid-content img:hover {
-  transform: translateY(-4px) rotate(var(--hover-rotate, 0deg));
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px) rotate(var(--hover-rotate, 0deg));
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
 }
 
 .contactPlaces {
