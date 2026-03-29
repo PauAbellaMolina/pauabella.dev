@@ -15,13 +15,16 @@ function Vibecoding() {
     navigate(`/experiment/${experiment.id}`);
   };
 
+  const handleHover = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rotation = (Math.random() * 6 - 3).toFixed(2);
+    e.currentTarget.style.setProperty('--hover-rotate', `${rotation}deg`);
+  };
+
   return (
     <div className="App">
       <h2 className="floating-navigation" onClick={() => navigate('/')}>Pau Abella</h2>
       <div className="centered-header">
         <h1>Vibecoding Experiments</h1>
-      </div>
-      <div className='content'>
         {experiments.length === 0 ? (
           <p>Coming soon...</p>
         ) : (
@@ -30,6 +33,7 @@ function Vibecoding() {
               <div
                 key={experiment.id}
                 className="experiment-card"
+                onMouseEnter={handleHover}
                 onClick={() => handleExperimentClick(experiment)}
               >
                 <div className="experiment-info">

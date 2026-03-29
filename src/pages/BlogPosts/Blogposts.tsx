@@ -21,8 +21,10 @@ function Blogposts() {
               className="blog-entry"
               onClick={() => navigate(`/blogposts/${post.id}`)}
             >
-              <h2>{post.title}</h2>
-              <span className="blog-date">{post.date}</span>
+              <div className="blog-entry-header">
+                <h2>{post.title}</h2>
+                <span className="blog-date">{post.date}</span>
+              </div>
               <p className="blog-excerpt">{post.excerpt}</p>
             </div>
           ))}
