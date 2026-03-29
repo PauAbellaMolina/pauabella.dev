@@ -274,7 +274,7 @@ a:hover {
     gap: 2rem;
   }
   p {
-    font-size: 1.7rem;
+    font-size: 1.5rem;
   }
   .header {
     padding: 3.5rem 1rem 0 1rem;
@@ -285,9 +285,11 @@ a:hover {
   }
   .contactPlaces {
     gap: 0.6rem;
+    font-size: 0.9rem;
   }
   .contactPlacesHome {
     gap: 0.75rem;
+    font-size: 1rem;
   }
   .sparse-grid-content Img {
     width: 80dvw;
