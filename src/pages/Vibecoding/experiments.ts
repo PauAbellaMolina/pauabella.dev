@@ -20,6 +20,14 @@ export interface Experiment {
 
 const experiments: Experiment[] = [
   {
+    id: 'stampit',
+    title: 'StampIt',
+    description: 'macOS menu bar screenshot stamper app.',
+    path: '',
+    thumbnail: null,
+    externalUrl: 'https://github.com/PauAbellaMolina/StampIt',
+  },
+  {
     id: 'outloud',
     title: 'Outloud',
     description: 'Voice summaries for Claude Code responses. Using Haiku + macOS text to speech.',
