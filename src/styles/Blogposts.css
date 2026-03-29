@@ -18,6 +18,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.8rem;
+  letter-spacing: 0;
 }
 
 .blog-entry:hover {
@@ -33,20 +34,21 @@
 }
 
 .blog-entry h2 {
-  font-family: "TASA Orbiter", sans-serif;
+  font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
   font-size: 1.55rem;
   margin: 0;
 }
 
 .blog-entry .blog-date {
-  font-family: "DM Sans", sans-serif;
+  font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
+  font-variation-settings: "wght" 500;
   font-size: 0.9rem;
   opacity: 0.7;
   white-space: nowrap;
 }
 
 .blog-entry .blog-excerpt {
-  font-family: "Valverde", serif;
+  font-family: "ABC Marist", serif;
   font-size: 1.1rem;
   line-height: 1.5;
 }
@@ -63,23 +65,25 @@
 }
 
 .blog-post-header h2 {
-  font-family: "TASA Orbiter", sans-serif;
+  font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
   font-size: 3rem;
   margin: 0 0 0.2rem 0;
   line-height: 1.2;
 }
 
 .blog-post-header .blog-date {
-  font-family: "DM Sans", sans-serif;
+  font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
+  font-variation-settings: "wght" 500;
   font-size: 0.9rem;
   opacity: 0.7;
 }
 
 .blog-post-content {
-  font-family: "Valverde", serif;
+  font-family: "ABC Marist", serif;
   font-size: 1.2rem;
   line-height: 1.8;
   text-align: justify;
+  letter-spacing: 0;
 }
 
 .blog-post-content p {
@@ -88,7 +92,8 @@
 }
 
 .back-link {
-  font-family: "DM Sans", sans-serif;
+  font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
+  font-variation-settings: "wght" 500;
   font-weight: 600;
   cursor: pointer;
   margin-bottom: 2.5rem;

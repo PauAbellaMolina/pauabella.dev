@@ -1,10 +1,14 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900;1000&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800;900;1000&display=swap");
 
 @font-face {
-  font-family: 'Valverde';
-  src: local('Valverde-CondensedSemibold'), url(../fonts/Valverde-CondensedSemibold.otf) format('opentype');
+  font-family: "ABC Marist";
+  src:
+    local("ABCMaristVariable"),
+    url(../fonts/ABCMaristVariable.ttf) format("truetype");
+  font-weight: 100 900;
 }
-@font-face {
-  font-family: 'TASA Orbiter';
-  src: local('TASAOrbiterDisplay-Black'), url(../fonts/TASAOrbiterDisplay-Black.otf) format('opentype');
+
+/* Default ABC Marist to a medium-bold weight via the variable axis */
+body {
+  font-variation-settings: "wght" 550;
 }

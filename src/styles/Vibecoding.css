@@ -3,6 +3,8 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 1.2rem;
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .experiment-card {
@@ -10,13 +12,14 @@
   border: 2px solid;
   border-radius: 16px;
   overflow: hidden;
+  min-width: 0;
   cursor: pointer;
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  height: 125px;
+  min-height: 125px;
 }
 
 .experiment-card:hover {
@@ -33,21 +36,21 @@
 }
 
 .experiment-info h3 {
-  font-family: "TASA Orbiter", sans-serif;
+  font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
   font-size: 1.32rem;
   margin: 0;
 }
 
 .experiment-info p {
-  font-family: "Valverde", serif;
+  font-family: "ABC Marist", serif;
   font-size: 1rem;
   opacity: 0.8;
 }
 
 .experiment-mode {
-  font-family: "DM Sans", sans-serif;
+  font-family: -apple-system, "SF Pro Display", system-ui, sans-serif;
+  font-variation-settings: "wght" 500;
   font-size: 0.75rem;
-  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   opacity: 0.6;
@@ -56,6 +59,7 @@
 @media (max-width: 600px) {
   .experiments-grid {
     grid-template-columns: 1fr;
+    padding: 0 2.5rem;
   }
 
   .experiment-info h3 {

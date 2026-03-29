@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import '../assets/css/fonts.css';
 import '../App.css';
 import { useState } from 'react';
-import { ReactComponent as PauAvatar } from '../assets/svg/pauavatar.svg';
 
 interface ColorPalette {
   text: string;
@@ -37,10 +36,9 @@ function Home() {
 
   return (
     <div className="App" style={{ backgroundColor: colorPalette.background, color: colorPalette.text }}>
-      <PauAvatar className="pauAvatarSvg" onClick={setNewRandomColorPalette} />
       <div className="header">
-        <h1>Pau Abella</h1>
-        <div className="contactPlaces">
+        <h1 onClick={setNewRandomColorPalette} style={{ cursor: 'pointer' }}>Pau Abella</h1>
+        <div className="contactPlaces contactPlacesHome">
           <a href='https://linkedin.com/in/pauabellamolina'>LinkedIn</a>
           <a href='https://github.com/PauAbellaMolina'>GitHub</a>
           <a href='mailto:pauabellamolina1@gmail.com'>Email</a>
