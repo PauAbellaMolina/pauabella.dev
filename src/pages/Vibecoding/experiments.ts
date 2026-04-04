@@ -22,7 +22,7 @@ const experiments: Experiment[] = [
   {
     id: 'ttsanything',
     title: 'TTSAnything',
-    description: 'Text to speech for any selected text on macOS. Built with Swift.',
+    description: 'Text to speech for any selected text on macOS.',
     path: '',
     thumbnail: null,
     externalUrl: 'https://github.com/PauAbellaMolina/ttsanything',
