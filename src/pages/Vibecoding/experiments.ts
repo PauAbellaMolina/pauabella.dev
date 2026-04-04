@@ -20,6 +20,14 @@ export interface Experiment {
 
 const experiments: Experiment[] = [
   {
+    id: 'ttsanything',
+    title: 'TTSAnything',
+    description: 'Text to speech for any selected text on macOS. Built with Swift.',
+    path: '',
+    thumbnail: null,
+    externalUrl: 'https://github.com/PauAbellaMolina/ttsanything',
+  },
+  {
     id: 'stampit',
     title: 'StampIt',
     description: 'macOS menu bar screenshot stamper app.',
