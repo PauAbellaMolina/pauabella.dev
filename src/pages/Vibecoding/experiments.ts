@@ -20,6 +20,14 @@ export interface Experiment {
 
 const experiments: Experiment[] = [
   {
+    id: 'mrkrabs',
+    title: 'MrKrabs',
+    description: 'Autoresearch for a stock picking agent. Solution to Cala.ai challenge for the Project Barcelona hackathon.',
+    path: '',
+    thumbnail: null,
+    externalUrl: 'https://github.com/PauAbellaMolina/mrkrabs',
+  },
+  {
     id: 'ttsanything',
     title: 'TTSAnything',
     description: 'Text to speech for any selected text on macOS.',
